@@ -1,0 +1,82 @@
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import unittest
+from urllib.parse import parse_qs, urlsplit
+
+from scripts.fetch_deals import SORTS, build_digest, refresh
+
+
+NOW = datetime(2026, 11, 25, 20, tzinfo=timezone.utc)
+
+
+def row(number, votes, views=100, comments=2, price=""):
+    return f"""
+      <tr id="sdpostrow_{number}0">
+        <td><a data-thread-id="{number}" href="/f/{number}-deal"
+          data-final-price="{price}">Deal &amp; <strong>extras {number}</strong></a>
+          <img alt="Votes: 3 Score: {votes}">
+        </td>
+        <td title="Replies: {comments:,}, Views: {views:,}">Comment info</td>
+      </tr>
+    """
+
+
+def fixture(url):
+    parts = urlsplit(url)
+    if parts.query:
+        sort = parse_qs(parts.query)["sort"][0]
+        if sort == "dateline":
+            return row(10, 20, views=550, comments=20) + row(14, 20, comments=17)
+        return (row(99, 200) + row(98, 199) + row(10, 20) + row(11, 40)
+                + row(12, 38, views=9_500) + row(13, 36, price="$9.95") + row(15, 1))
+    number = int(parts.path.split("/")[-1].split("-")[0])
+    posted = {
+        99: NOW - timedelta(hours=24, seconds=1),
+        98: NOW + timedelta(seconds=1),
+        13: NOW - timedelta(hours=24),
+    }.get(number, NOW - timedelta(hours=5))
+    return f"""
+      <meta name="schema-date-published" content="{posted.isoformat()}">
+      <meta property="og:image" content="https://slickdeals.net/attachment/deal.thumb">
+      <meta name="price" content="11">
+      <a data-storename="Example Store">Store</a>
+      <img alt>
+    """
+
+
+class FetchDealsTest(unittest.TestCase):
+    def test_ranks_deduplicated_deals_using_all_three_metrics_and_true_post_time(self):
+        result = build_digest(NOW, fixture)
+        self.assertEqual(result["generated_at"], NOW.isoformat())
+        self.assertEqual([deal["id"] for deal in result["deals"]], ["10", "14", "12", "11", "13", "15"])
+        first = result["deals"][0]
+        self.assertEqual(first["title"], "Deal & extras 10")
+        self.assertEqual(first["votes"], 20)
+        self.assertEqual(first["views"], 550)
+        self.assertEqual(first["comments"], 20)
+        self.assertEqual(first["store"], "Example Store")
+        self.assertEqual(first["price"], "$11.00")
+        self.assertEqual(first["image"], "https://slickdeals.net/attachment/deal.thumb")
+        self.assertEqual(result["deals"][4]["price"], "$9.95")
+
+    def test_refresh_keeps_previous_snapshot_on_incomplete_source(self):
+        def broken(url):
+            if f"sort={SORTS[0]}" in url:
+                return "<html>Upstream error</html>"
+            return fixture(url)
+
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "deals.json"
+            output.write_text("last good snapshot")
+            with self.assertRaisesRegex(ValueError, "No readable deal rows"):
+                refresh(output, NOW, broken)
+            self.assertEqual(output.read_text(), "last good snapshot")
+
+    def test_refresh_keeps_previous_snapshot_if_not_enough_recent_deals(self):
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "deals.json"
+            output.write_text("last good snapshot")
+            with self.assertRaisesRegex(ValueError, "Only 0 eligible deals"):
+                refresh(output, NOW + timedelta(hours=48), fixture)
+            self.assertEqual(output.read_text(), "last good snapshot")

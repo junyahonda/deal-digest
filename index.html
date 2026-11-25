@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="The top five deals posted on Slickdeals in the last 24 hours, ranked by community activity.">
+    <title>Deal Digest · The Slickdeals top five</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="frame masthead">
+        <a class="wordmark" href="./"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 10-12h-8z" fill="currentColor"/></svg>Deal Digest</a>
+        <span class="edition">THE 24H EDITION</span>
+      </div>
+    </header>
+
+    <main class="frame">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="hero-label"><span></span> THE SLICKDEALS TOP FIVE</p>
+          <h1 id="page-title">Today’s top deals.</h1>
+          <p class="hero-description">Five standout Slickdeals from the last 24 hours, ranked by votes, views and comments.</p>
+        </div>
+      </section>
+
+      <section class="ranking" aria-labelledby="ranking-title">
+        <div class="ranking-heading">
+          <h2 id="ranking-title">The latest ranking</h2>
+          <p class="update" id="updated"></p>
+        </div>
+        <p class="notice" id="status" role="status">Loading the deal ranking…</p>
+        <ol class="deals" id="deals" role="list"></ol>
+      </section>
+
+      <footer>
+        <details>
+          <summary>How the ranking works</summary>
+          <p>We combine the top-rated, most viewed, most discussed and newest posts from the Slickdeals Hot Deals forum. We verify each deal’s original posting time before it can make the list.</p>
+          <p>Score = net votes + 2 × comments + 3 × log₁₀(1 + views). Views add a small boost without drowning out votes and discussion. The digest refreshes hourly.</p>
+        </details>
+        <p>Independent digest · Source: <a href="https://slickdeals.net/forums/forumdisplay.php?f=9">Slickdeals Hot Deals</a></p>
+      </footer>
+    </main>
+
+    <template id="deal-template">
+      <li class="deal">
+        <article>
+          <div class="deal-content">
+            <div class="thumbnail" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12.5 12.5 20 4 11.5V4h7.5l8.5 8.5Z"/><circle cx="8" cy="8" r="1"/></svg>
+              <img alt="" width="76" height="76" hidden>
+            </div>
+            <div class="deal-copy">
+              <div class="eyebrow"><span class="place"></span><span class="store"></span><time class="posted"></time></div>
+              <h3 class="deal-title"></h3>
+              <p class="price"></p>
+            </div>
+          </div>
+          <dl class="stats">
+            <div><dt>votes</dt><dd class="votes"></dd></div>
+            <div><dt>views</dt><dd class="views"></dd></div>
+            <div><dt>comments</dt><dd class="comments"></dd></div>
+            <div><dt>score</dt><dd class="score"></dd></div>
+          </dl>
+          <a class="deal-link">View on Slickdeals <span aria-hidden="true">↗</span></a>
+        </article>
+      </li>
+    </template>
+  </body>
+</html>
