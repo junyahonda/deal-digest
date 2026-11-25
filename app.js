@@ -2,6 +2,7 @@ const list = document.querySelector("#deals");
 const status = document.querySelector("#status");
 const updated = document.querySelector("#updated");
 const template = document.querySelector("#deal-template");
+const rankingHelp = document.querySelector("#ranking-help");
 const fullDate = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium", timeStyle: "short",
 });
@@ -9,6 +10,31 @@ const relative = new Intl.RelativeTimeFormat(undefined, { numeric: "always", sty
 const numbers = new Intl.NumberFormat();
 const signed = new Intl.NumberFormat(undefined, { signDisplay: "exceptZero" });
 const hour = 60 * 60 * 1000;
+
+let closingHelp = false;
+
+function syncRankingHelp() {
+  closingHelp = false;
+  rankingHelp.open = history.state?.rankingHelp === true;
+}
+
+rankingHelp.querySelector("summary").addEventListener("click", (event) => {
+  event.preventDefault();
+  if (closingHelp) return;
+  if (rankingHelp.open) {
+    if (history.state?.rankingHelp === true) {
+      closingHelp = true;
+      history.back();
+    } else {
+      syncRankingHelp();
+    }
+  } else {
+    history.pushState({ ...history.state, rankingHelp: true }, "");
+    syncRankingHelp();
+  }
+});
+window.addEventListener("popstate", syncRankingHelp);
+syncRankingHelp();
 
 function renderDeal(deal, position, now) {
   const card = template.content.cloneNode(true);
@@ -76,3 +102,9 @@ async function loadDeals() {
 }
 
 loadDeals();
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch((error) => {
+    console.warn("Deal Digest offline mode is unavailable:", error);
+  });
+}
