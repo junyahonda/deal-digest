@@ -6,7 +6,7 @@ const { runInNewContext } = require("node:vm");
 function setupRankingHelp() {
   const callbacks = {};
   const events = { addEventListener: (type, fn) => { callbacks[type] = fn; } };
-  const help = { querySelector: () => events };
+  const help = { ...events, querySelector: () => events };
   const stack = [null];
   const history = {
     get state() { return stack.at(-1); },
@@ -24,12 +24,13 @@ function setupRankingHelp() {
   });
 
   const tap = () => callbacks.click({ preventDefault() {} });
-  return { help, stack, history, tap };
+  return { help, stack, history, tap, toggle: () => callbacks.toggle() };
 }
 
 test("ranking help opens one history entry and closes on Back or a second tap", () => {
-  const { help, stack, history, tap } = setupRankingHelp();
+  const { help, stack, history, tap, toggle } = setupRankingHelp();
   tap();
+  toggle();
   assert.equal(help.open, true);
   assert.equal(stack.length, 2);
   history.back();
@@ -49,6 +50,25 @@ test("tapping ranking help opened by Find in Page closes it without navigating",
   tap();
   assert.equal(help.open, true);
   assert.equal(stack.length, 2);
+});
+
+test("Find in Page opening creates one entry that Back or a tap can close", () => {
+  const { help, stack, history, tap, toggle } = setupRankingHelp();
+  help.open = true;
+  toggle();
+  toggle();
+  assert.equal(stack.length, 2);
+  history.back();
+  toggle();
+  assert.equal(help.open, false);
+  assert.equal(stack.length, 1);
+
+  help.open = true;
+  toggle();
+  tap();
+  toggle();
+  assert.equal(help.open, false);
+  assert.equal(stack.length, 1);
 });
 
 test("the offline worker refreshes the scoped digest from the network before falling back", async () => {

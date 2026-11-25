@@ -13,25 +13,36 @@ const hour = 60 * 60 * 1000;
 
 let closingHelp = false;
 
+function hasRankingHelpEntry() {
+  return history.state?.rankingHelp === true;
+}
+
+function pushRankingHelpEntry() {
+  history.pushState({ ...history.state, rankingHelp: true }, "");
+}
+
 function syncRankingHelp() {
   closingHelp = false;
-  rankingHelp.open = history.state?.rankingHelp === true;
+  rankingHelp.open = hasRankingHelpEntry();
 }
 
 rankingHelp.querySelector("summary").addEventListener("click", (event) => {
   event.preventDefault();
   if (closingHelp) return;
   if (rankingHelp.open) {
-    if (history.state?.rankingHelp === true) {
+    if (hasRankingHelpEntry()) {
       closingHelp = true;
       history.back();
     } else {
       syncRankingHelp();
     }
   } else {
-    history.pushState({ ...history.state, rankingHelp: true }, "");
+    pushRankingHelpEntry();
     syncRankingHelp();
   }
+});
+rankingHelp.addEventListener("toggle", () => {
+  if (rankingHelp.open && !hasRankingHelpEntry()) pushRankingHelpEntry();
 });
 window.addEventListener("popstate", syncRankingHelp);
 syncRankingHelp();
