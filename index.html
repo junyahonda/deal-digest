@@ -3,8 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="text-scale" content="scale">
     <meta name="description" content="The top five deals posted on Slickdeals in the last 24 hours, ranked by community activity.">
+    <meta name="theme-color" content="#133a30">
     <title>Deal Digest · The Slickdeals top five</title>
+    <link rel="manifest" href="./manifest.webmanifest">
     <link rel="stylesheet" href="./styles.css">
     <script type="module" src="./app.js"></script>
   </head>
@@ -35,12 +38,12 @@
       </section>
 
       <footer>
-        <details>
+        <details id="ranking-help">
           <summary>How the ranking works</summary>
           <p>We combine the top-rated, most viewed, most discussed and newest posts from the Slickdeals Hot Deals forum. We verify each deal’s original posting time before it can make the list.</p>
           <p>Score = net votes + 2 × comments + 3 × log₁₀(1 + views). Views add a small boost without drowning out votes and discussion. The digest refreshes hourly.</p>
         </details>
-        <p>Independent digest · Source: <a href="https://slickdeals.net/forums/forumdisplay.php?f=9">Slickdeals Hot Deals</a></p>
+        <p>Independent digest · Source: <a class="source-link" href="https://slickdeals.net/forums/forumdisplay.php?f=9">Slickdeals Hot Deals</a></p>
       </footer>
     </main>
 
