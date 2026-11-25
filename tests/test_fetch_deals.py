@@ -49,7 +49,7 @@ class FetchDealsTest(unittest.TestCase):
     def test_ranks_deduplicated_deals_using_all_three_metrics_and_true_post_time(self):
         result = build_digest(NOW, fixture)
         self.assertEqual(result["generated_at"], NOW.isoformat())
-        self.assertEqual([deal["id"] for deal in result["deals"]], ["10", "14", "12", "11", "13"])
+        self.assertEqual([deal["id"] for deal in result["deals"]], ["10", "14", "12", "11", "13", "15"])
         first = result["deals"][0]
         self.assertEqual(first["title"], "Deal & extras 10")
         self.assertEqual(first["votes"], 20)
@@ -58,7 +58,7 @@ class FetchDealsTest(unittest.TestCase):
         self.assertEqual(first["store"], "Example Store")
         self.assertEqual(first["price"], "$11.00")
         self.assertEqual(first["image"], "https://slickdeals.net/attachment/deal.thumb")
-        self.assertEqual(result["deals"][-1]["price"], "$9.95")
+        self.assertEqual(result["deals"][4]["price"], "$9.95")
 
     def test_refresh_keeps_previous_snapshot_on_incomplete_source(self):
         def broken(url):

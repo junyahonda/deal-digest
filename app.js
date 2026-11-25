@@ -59,7 +59,7 @@ async function loadDeals() {
     const recent = digest.deals.filter((deal) => {
       const age = now - new Date(deal.posted_at);
       return age >= 0 && age <= 24 * hour;
-    });
+    }).slice(0, 5);
     const cards = recent.map((deal, i) => renderDeal(deal, i + 1, now));
     updated.replaceChildren("Updated ", time);
     list.replaceChildren(...cards);

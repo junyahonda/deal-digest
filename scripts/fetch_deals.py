@@ -15,7 +15,8 @@ from urllib.parse import urlencode, urljoin, urlsplit
 
 BASE = "https://slickdeals.net"
 SORTS = ("voteavg", "views", "replycount", "dateline")
-LIMIT = 5
+MIN_DEALS = 5
+MAX_DEALS = 15
 WINDOW = timedelta(hours=24)
 
 
@@ -134,9 +135,11 @@ def build_digest(now, fetch=get_html):
     for deal in ranking:
         if result := complete_deal(deal, fetch(deal["link"]), now):
             top.append(result)
-            if len(top) == LIMIT:
-                return {"generated_at": now.isoformat(), "deals": top}
-    raise ValueError(f"Only {len(top)} eligible deals found; expected {LIMIT}")
+            if len(top) == MAX_DEALS:
+                break
+    if len(top) < MIN_DEALS:
+        raise ValueError(f"Only {len(top)} eligible deals found; expected at least {MIN_DEALS}")
+    return {"generated_at": now.isoformat(), "deals": top}
 
 
 def refresh(output, now, fetch=get_html):
