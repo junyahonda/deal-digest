@@ -2,7 +2,6 @@ const list = document.querySelector("#deals");
 const status = document.querySelector("#status");
 const updated = document.querySelector("#updated");
 const template = document.querySelector("#deal-template");
-const rankingHelp = document.querySelector("#ranking-help");
 const fullDate = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium", timeStyle: "short",
 });
@@ -10,42 +9,6 @@ const relative = new Intl.RelativeTimeFormat(undefined, { numeric: "always", sty
 const numbers = new Intl.NumberFormat();
 const signed = new Intl.NumberFormat(undefined, { signDisplay: "exceptZero" });
 const hour = 60 * 60 * 1000;
-
-let closingHelp = false;
-
-function hasRankingHelpEntry() {
-  return history.state?.rankingHelp === true;
-}
-
-function pushRankingHelpEntry() {
-  history.pushState({ ...history.state, rankingHelp: true }, "");
-}
-
-function syncRankingHelp() {
-  closingHelp = false;
-  rankingHelp.open = hasRankingHelpEntry();
-}
-
-rankingHelp.querySelector("summary").addEventListener("click", (event) => {
-  event.preventDefault();
-  if (closingHelp) return;
-  if (rankingHelp.open) {
-    if (hasRankingHelpEntry()) {
-      closingHelp = true;
-      history.back();
-    } else {
-      syncRankingHelp();
-    }
-  } else {
-    pushRankingHelpEntry();
-    syncRankingHelp();
-  }
-});
-rankingHelp.addEventListener("toggle", () => {
-  if (rankingHelp.open && !hasRankingHelpEntry()) pushRankingHelpEntry();
-});
-window.addEventListener("popstate", syncRankingHelp);
-syncRankingHelp();
 
 function renderDeal(deal, position, now) {
   const card = template.content.cloneNode(true);

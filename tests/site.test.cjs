@@ -3,72 +3,13 @@ const { readFileSync } = require("node:fs");
 const test = require("node:test");
 const { runInNewContext } = require("node:vm");
 
-function setupRankingHelp() {
-  const callbacks = {};
-  const events = { addEventListener: (type, fn) => { callbacks[type] = fn; } };
-  const help = { ...events, querySelector: () => events };
-  const stack = [null];
-  const history = {
-    get state() { return stack.at(-1); },
-    pushState: (entry) => stack.push(entry),
-    back: () => {
-      assert.equal(stack.length, 2);
-      stack.pop();
-      callbacks.popstate();
-    },
-  };
-  runInNewContext(readFileSync("app.js", "utf8"), {
-    document: { querySelector: () => help },
-    window: events, history, navigator: {},
-    fetch: () => new Promise(() => {}),
-  });
-
-  const tap = () => callbacks.click({ preventDefault() {} });
-  return { help, stack, history, tap, toggle: () => callbacks.toggle() };
-}
-
-test("ranking help opens one history entry and closes on Back or a second tap", () => {
-  const { help, stack, history, tap, toggle } = setupRankingHelp();
-  tap();
-  toggle();
-  assert.equal(help.open, true);
-  assert.equal(stack.length, 2);
-  history.back();
-  assert.equal(help.open, false);
-  tap();
-  tap();
-  assert.equal(help.open, false);
-  assert.equal(stack.length, 1);
-});
-
-test("tapping ranking help opened by Find in Page closes it without navigating", () => {
-  const { help, stack, tap } = setupRankingHelp();
-  help.open = true;
-  tap();
-  assert.equal(help.open, false);
-  assert.equal(stack.length, 1);
-  tap();
-  assert.equal(help.open, true);
-  assert.equal(stack.length, 2);
-});
-
-test("Find in Page opening creates one entry that Back or a tap can close", () => {
-  const { help, stack, history, tap, toggle } = setupRankingHelp();
-  help.open = true;
-  toggle();
-  toggle();
-  assert.equal(stack.length, 2);
-  history.back();
-  toggle();
-  assert.equal(help.open, false);
-  assert.equal(stack.length, 1);
-
-  help.open = true;
-  toggle();
-  tap();
-  toggle();
-  assert.equal(help.open, false);
-  assert.equal(stack.length, 1);
+test("the ranking explanation is plain content and does not need a disclosure", () => {
+  const page = readFileSync("index.html", "utf8");
+  const explanation = page.match(/<section\b[^>]*aria-labelledby="ranking-help-title"[^>]*>([\s\S]*?)<\/section>/);
+  assert.ok(explanation);
+  assert.match(explanation[1], /<h2 id="ranking-help-title">How the ranking works<\/h2>/);
+  assert.match(explanation[1], /without drowning out votes and discussion/);
+  assert.doesNotMatch(page, /<details\b/);
 });
 
 test("the offline worker refreshes the scoped digest from the network before falling back", async () => {
