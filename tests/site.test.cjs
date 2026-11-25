@@ -3,7 +3,7 @@ const { readFileSync } = require("node:fs");
 const test = require("node:test");
 const { runInNewContext } = require("node:vm");
 
-test("ranking help opens one history entry and closes on Back or a second tap", () => {
+function setupRankingHelp() {
   const callbacks = {};
   const events = { addEventListener: (type, fn) => { callbacks[type] = fn; } };
   const help = { querySelector: () => events };
@@ -24,6 +24,11 @@ test("ranking help opens one history entry and closes on Back or a second tap", 
   });
 
   const tap = () => callbacks.click({ preventDefault() {} });
+  return { help, stack, history, tap };
+}
+
+test("ranking help opens one history entry and closes on Back or a second tap", () => {
+  const { help, stack, history, tap } = setupRankingHelp();
   tap();
   assert.equal(help.open, true);
   assert.equal(stack.length, 2);
@@ -33,6 +38,17 @@ test("ranking help opens one history entry and closes on Back or a second tap", 
   tap();
   assert.equal(help.open, false);
   assert.equal(stack.length, 1);
+});
+
+test("tapping ranking help opened by Find in Page closes it without navigating", () => {
+  const { help, stack, tap } = setupRankingHelp();
+  help.open = true;
+  tap();
+  assert.equal(help.open, false);
+  assert.equal(stack.length, 1);
+  tap();
+  assert.equal(help.open, true);
+  assert.equal(stack.length, 2);
 });
 
 test("the offline worker refreshes the scoped digest from the network before falling back", async () => {

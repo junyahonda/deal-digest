@@ -22,8 +22,12 @@ rankingHelp.querySelector("summary").addEventListener("click", (event) => {
   event.preventDefault();
   if (closingHelp) return;
   if (rankingHelp.open) {
-    closingHelp = true;
-    history.back();
+    if (history.state?.rankingHelp === true) {
+      closingHelp = true;
+      history.back();
+    } else {
+      syncRankingHelp();
+    }
   } else {
     history.pushState({ ...history.state, rankingHelp: true }, "");
     syncRankingHelp();
