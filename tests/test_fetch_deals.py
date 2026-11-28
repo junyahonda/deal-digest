@@ -55,48 +55,44 @@ class FetchDealsTest(unittest.TestCase):
         self.assertEqual(classify("G50VT", store="Micro Center"), "tech")
         self.assertEqual(classify("Dinnerware set", store="Amazon"), "other")
 
-    def test_classifies_switch_2_and_pc_games_but_not_other_consoles_or_steam_hardware(self):
-        for title in ("Nintendo Switch 2 Console", "Switch 2 Carrying Case",
-                      "Mario Kart World (Nintendo Switch 2)", "DOOM (Steam)", "Hades II (PC)",
-                      "Myst (PC Digital Download)", "Humble PC game bundle", "Terraria PC code",
-                      "Free game at Epic Games", "The Witcher (GOG)"):
-            with self.subTest(title=title):
-                self.assertEqual(classify(title, "Video Games"), "games")
+    def test_platform_markers_quantities_and_hardware_bonuses(self):
+        cases = {
+            "games": (
+                "Nintendo Switch 2 Console", "Switch 2 Carrying Case",
+                "Mario Kart World (Nintendo Switch 2)", "DOOM (Steam)", "Hades II (PC)",
+                "Myst (PC Digital Download)", "Humble PC game bundle", "Terraria PC code",
+                "Free game at Epic Games", "The Witcher (GOG)", "Hades + Hades II (Steam)",
+                "Game + DLC (Epic)", "Game + DLC (GOG)", "Game + DLC [PC]",
+                "Game with DLC (PC Digital Download)", "Hades (Steam) + Free Hades II (Steam)",
+                "Hades II PC + Free DLC (Steam)", "Game (Steam / Epic)", "Game (PC Digital)",
+                "Game [Steam]", "Game [GOG]", "Game PC Digital Game Download", "Game via Battle.net",
+                "Switch 2 Console + Free Game Code", "Switch 2 Pro Controller",
+                "2-Pack Screen Protectors for Nintendo Switch 2",
+                "Nintendo Switch 2 - Pack of 2 Screen Protectors",
+            ),
+            "tech": (
+                "Nintendo Switch OLED", "PS5 console", "Xbox Series X", "Steam Deck OLED",
+                "Nintendo Switch 2-Pack Screen Protectors (Switch OLED)",
+                "Nintendo Switch 2‑pack Screen Protectors (Switch OLED)",
+                "Nintendo Switch 2pk Screen Protectors (Switch OLED)",
+                "Nintendo Switch 2 pk Screen Protectors (Switch OLED)",
+                "Nintendo Switch 2 count Screen Protectors (Switch OLED)",
+                "Switch 2 Pack", "Switch 2-Count", "Switch 2-Pack", "Switch 2pk",
+                "Switch 2 pcs", "Switch 2-Piece Accessory Set",
+                "RTX 5070 GPU + Free Game Code (Steam)", "Ryzen 7 CPU with bonus game (GOG)",
+                "HP laptop w/game code (Epic)", "Gaming PC includes a free game (Steam)",
+                "27-inch monitor + game (PC Digital)", "Beelink [Mini PC]",
+                "Lenovo ThinkCentre (Desktop PC)", "SSD + bonus game (Steam / Epic)",
+            ),
+            "giftcards": ("$50 Steam gift card",),
+            "other": ("Steam mop",),
+        }
+        for expected, titles in cases.items():
+            for title in titles:
+                with self.subTest(title=title):
+                    self.assertEqual(classify(title), expected)
         self.assertEqual(classify("Hades II", "PC Games"), "games")
         self.assertEqual(classify("Surprise game", store="GOG.com"), "games")
-        self.assertEqual(classify("$50 Steam gift card"), "giftcards")
-        for title in ("Nintendo Switch OLED", "PS5 console", "Xbox Series X", "Steam Deck OLED"):
-            self.assertEqual(classify(title), "tech")
-        self.assertEqual(classify("Steam mop"), "other")
-
-    def test_detects_pc_storefronts_and_platform_tags_after_bundle_separators(self):
-        for title in ("Hades + Hades II (Steam)", "Game + DLC (Epic)", "Game + DLC (GOG)",
-                      "Game + DLC [PC]", "Game with DLC (PC Digital Download)"):
-            with self.subTest(title=title):
-                self.assertEqual(classify(title, "Video Games"), "games")
-
-    def test_switch_pack_quantities_do_not_match_the_switch_2_platform(self):
-        for quantity in ("2-Pack", "2‑pack", "2pk", "2 pk", "2 count"):
-            with self.subTest(quantity=quantity):
-                title = f"Nintendo Switch {quantity} Screen Protectors (Switch OLED)"
-                self.assertEqual(classify(title), "tech")
-        self.assertEqual(classify("2-Pack Screen Protectors for Nintendo Switch 2"), "games")
-        self.assertEqual(classify("Nintendo Switch 2 - Pack of 2 Screen Protectors"), "games")
-
-    def test_free_pc_games_do_not_reclassify_hardware(self):
-        for title in ("RTX 5070 GPU + Free Game Code (Steam)", "Ryzen 7 CPU with bonus game (GOG)",
-                      "HP laptop w/game code (Epic)", "Gaming PC includes a free game (Steam)",
-                      "27-inch monitor + game (PC Digital)"):
-            with self.subTest(title=title):
-                self.assertEqual(classify(title), "tech")
-        self.assertEqual(classify("Switch 2 Console + Free Game Code"), "games")
-        self.assertEqual(classify("Hades (Steam) + Free Hades II (Steam)"), "games")
-
-    def test_bracketed_platform_tags_must_match_the_entire_tag(self):
-        self.assertEqual(classify("Beelink [Mini PC]"), "tech")
-        self.assertEqual(classify("Lenovo ThinkCentre (Desktop PC)"), "tech")
-        for tag in ("[PC]", "(PC Digital)", "[Steam]", "(Epic)", "[GOG]"):
-            self.assertEqual(classify(f"Hades {tag}"), "games")
 
     def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
         def listings(url):
