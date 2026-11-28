@@ -21,7 +21,8 @@ async function loadSite(sessionStorage) {
       setAttribute(name, value) { assert.equal(name, "aria-pressed"); this.pressed = value; },
     }));
   assert.deepEqual(buttons.map((button) => [button.dataset.category, button.pressed]),
-    [["all", "true"], ["giftcards", "false"], ["tech", "false"], ["games", "false"], ["other", "false"]]);
+    [["all", "true"], ["giftcards", "false"], ["tech", "false"], ["games", "false"],
+      ["beauty", "false"], ["wellness", "false"], ["kitchen", "false"], ["other", "false"]]);
 
   let cards;
   const status = {};
@@ -50,7 +51,9 @@ async function loadSite(sessionStorage) {
     fetch: async () => ({ ok: true, async json() {
       return { generated_at: new Date(now).toISOString(), deals: [
         deal("expired", "tech", 25), deal("gift", "giftcards"), ...tech,
-        deal("Switch 2", "games"), deal("future", "other", -1),
+        deal("Switch 2", "games"), deal("shampoo", "beauty"), deal("yoga mat", "wellness"),
+        deal("coffee maker", "kitchen"), deal("expired cookware", "kitchen", 25),
+        deal("future", "other", -1),
       ] };
     } }),
     navigator: {},
@@ -66,10 +69,11 @@ test("category filters show up to five recent deals in rank order and report sho
   const { buttons, status, titles, firstCard } = await loadSite();
   assert.ok(buttons.every((button) => !button.disabled));
   assert.deepEqual(titles(), ["gift", "tech 1", "tech 2", "tech 3", "tech 4"]);
-  const [, giftcards, techFilter, games, other] = buttons;
+  const [, giftcards, techFilter, games, beauty, wellness, kitchen, other] = buttons;
   techFilter.click();
   assert.deepEqual(titles(), ["tech 1", "tech 2", "tech 3", "tech 4", "tech 5"]);
-  assert.deepEqual(buttons.map((button) => button.pressed), ["false", "false", "true", "false", "false"]);
+  assert.deepEqual(buttons.map((button) => button.pressed),
+    ["false", "false", "true", "false", "false", "false", "false", "false"]);
   assert.equal(firstCard().querySelector(".place").textContent, "#1");
   assert.equal(firstCard().querySelector(".deal-category").textContent, "Tech");
   assert.equal(firstCard().querySelector(".deal-category").hidden, false);
@@ -82,6 +86,14 @@ test("category filters show up to five recent deals in rank order and report sho
   assert.equal(firstCard().querySelector(".deal-category").textContent, "Switch 2 & PC games");
   assert.equal(status.textContent, "Only 1 deal in this category from the last 24 hours.");
   assert.equal(status.hidden, false);
+  for (const [button, title, label] of [
+    [beauty, "shampoo", "Beauty"], [wellness, "yoga mat", "Wellness & lifestyle"],
+    [kitchen, "coffee maker", "Kitchen"],
+  ]) {
+    button.click();
+    assert.deepEqual(titles(), [title]);
+    assert.equal(firstCard().querySelector(".deal-category").textContent, label);
+  }
   other.click();
   assert.deepEqual(titles(), []);
   assert.match(status.textContent, /No deals in this category/);
@@ -94,11 +106,11 @@ test("a reload restores the stored category and a fresh session defaults to All"
   const storage = { setItem: (key, value) => entries.set(key, value),
     getItem: (key) => entries.get(key) ?? null };
   const first = await loadSite(storage);
-  first.buttons.find((button) => button.dataset.category === "games").click();
+  first.buttons.find((button) => button.dataset.category === "wellness").click();
   const reloaded = await loadSite(storage);
   assert.deepEqual(reloaded.buttons.filter((button) => button.pressed === "true")
-    .map((button) => button.dataset.category), ["games"]);
-  assert.deepEqual(reloaded.titles(), ["Switch 2"]);
+    .map((button) => button.dataset.category), ["wellness"]);
+  assert.deepEqual(reloaded.titles(), ["yoga mat"]);
   const newSession = await loadSite();
   assert.equal(newSession.buttons[0].pressed, "true");
   assert.deepEqual(newSession.titles(), ["gift", "tech 1", "tech 2", "tech 3", "tech 4"]);

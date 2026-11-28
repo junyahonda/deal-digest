@@ -4,7 +4,8 @@ const updated = document.querySelector("#updated");
 const template = document.querySelector("#deal-template");
 const categoryButtons = document.querySelectorAll(".category-filters button");
 const categories = new Map([
-  ["giftcards", "Gift cards"], ["tech", "Tech"], ["games", "Switch 2 & PC games"], ["other", "Others"],
+  ["giftcards", "Gift cards"], ["tech", "Tech"], ["games", "Switch 2 & PC games"],
+  ["beauty", "Beauty"], ["wellness", "Wellness & lifestyle"], ["kitchen", "Kitchen"], ["other", "Others"],
 ]);
 const filterKey = "deal-digest-category";
 const fullDate = new Intl.DateTimeFormat(undefined, {
