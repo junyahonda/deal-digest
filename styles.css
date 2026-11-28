@@ -91,6 +91,11 @@ footer p { margin: 5px 0; }
   .stats div + div { border-left: 1px solid var(--line); }
 }
 
+@media (max-width: 375px) {
+  .category-filters { gap: 5px; }
+  .category-filters button { padding-inline: 6px; font-size: .8125rem; }
+}
+
 @media (min-width: 580px) {
   .hero { margin-top: 24px; padding: 34px; }
   .hero::after { right: -80px; }

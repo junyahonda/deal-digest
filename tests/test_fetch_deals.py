@@ -53,7 +53,7 @@ class FetchDealsTest(unittest.TestCase):
         self.assertEqual(classify("Winter boots + $50 gift card"), "other")
         self.assertEqual(classify("C27G4X", "Monitors"), "tech")
         self.assertEqual(classify("G50VT", store="Micro Center"), "tech")
-        self.assertEqual(classify("Dinnerware set", store="Amazon"), "other")
+        self.assertEqual(classify("Dinnerware set", store="Amazon"), "kitchen")
 
     def test_platform_markers_quantities_and_hardware_bonuses(self):
         cases = {
@@ -133,20 +133,55 @@ class FetchDealsTest(unittest.TestCase):
             with self.subTest(title=title):
                 self.assertEqual(classify(title, category, store), expected)
 
+    def test_classifies_beauty_wellness_and_kitchen_by_product_or_metadata(self):
+        cases = (
+            ("Vitamin C Face Serum", "Health & Wellness", None, "beauty"),
+            ("Waterproof Mascara", "", None, "beauty"),
+            ("Moisturizing Shampoo with Coconut Oil", "", None, "beauty"),
+            ("Eau de Parfum Spray", "Fragrances", None, "beauty"),
+            ("Rechargeable Beard Trimmer", "Electronics", None, "beauty"),
+            ("Biotin Multivitamins for Hair, Skin, and Nails", "Beauty", None, "wellness"),
+            ("Premier Protein 30g Protein Shakes", "", None, "wellness"),
+            ("Adjustable Dumbbells", "", None, "wellness"),
+            ("Electric Toothbrush", "Personal Care", None, "wellness"),
+            ("Blood Pressure Monitor", "Electronics", None, "wellness"),
+            ("Weighted Blanket", "", None, "wellness"),
+            ("Trail Shelter", "Sports & Outdoors", None, "wellness"),
+            ("Digital Air Fryer", "Electronics", "Newegg", "kitchen"),
+            ("Ninja Countertop Blender", "Electronics", None, "kitchen"),
+            ("Programmable Coffee Maker", "", None, "kitchen"),
+            ("Stainless Steel Cookware Set", "", None, "kitchen"),
+            ("Glass Food Storage Containers", "", None, "kitchen"),
+            ("12-piece Stainless Steel Set", "Kitchen Utensils", None, "kitchen"),
+            ("Gift Card for a Blender", "Kitchen", None, "giftcards"),
+            ("Laptop with free blender", "Computers", None, "tech"),
+            ("Dish Spray Bundle", "Kitchen & Bathroom Cleaning Supplies", None, "other"),
+            ("Countertop Water Bottle", "", None, "other"),
+        )
+        for title, category, store, expected in cases:
+            with self.subTest(title=title):
+                self.assertEqual(classify(title, category, store), expected)
+
     def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
         def listings(url):
             if urlsplit(url).query:
                 return ("".join(row(n, 200 - n) for n in range(20, 40))
                         + "".join(row(n, 200 - n, title="Nintendo e-gift card") for n in range(40, 46))
                         + "".join(row(n, 200 - n, title="OLED laptop") for n in range(46, 52))
-                        + "".join(row(n, 200 - n, title="Switch 2 console") for n in range(52, 58)))
+                        + "".join(row(n, 200 - n, title="Switch 2 console") for n in range(52, 58))
+                        + "".join(row(n, 200 - n, title="Shampoo") for n in range(58, 64))
+                        + "".join(row(n, 200 - n, title="Yoga mat") for n in range(64, 70))
+                        + "".join(row(n, 200 - n, title="Air fryer") for n in range(70, 76)))
             return fixture(url)
 
         deals = build_digest(NOW, listings)["deals"]
         self.assertEqual([deal["id"] for deal in deals], [str(n) for n in (
-            *range(20, 35), *range(40, 58))])
+            *range(20, 35), *range(40, 76))])
         self.assertEqual([deal["category"] for deal in deals],
-                         ["other"] * 15 + ["giftcards"] * 6 + ["tech"] * 6 + ["games"] * 6)
+                         ["other"] * 15 + [
+                             group for group in ("giftcards", "tech", "games", "beauty", "wellness", "kitchen")
+                             for _ in range(6)
+                         ])
 
     def test_ranks_deduplicated_deals_using_all_three_metrics_and_true_post_time(self):
         result = build_digest(NOW, fixture)

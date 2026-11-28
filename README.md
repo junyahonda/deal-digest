@@ -1,6 +1,6 @@
 # Deal Digest
 
-The five most popular deals in a rolling 24-hour window, drawn from the public Slickdeals Hot Deals forum. Filter to see up to five deals each in Gift cards, Tech, Switch 2 & PC games, and Others. The mobile-first site shows the deal's price and store when available, its original posting time, net votes, views, comments, and ranking score.
+The five most popular deals in a rolling 24-hour window, drawn from the public Slickdeals Hot Deals forum. Filter to see up to five deals each in Gift cards, Tech, Switch 2 & PC games, Beauty, Wellness & lifestyle, Kitchen, and Others. The mobile-first site shows the deal's price and store when available, its original posting time, net votes, views, comments, and ranking score.
 
 ## Run locally
 

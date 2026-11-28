@@ -53,6 +53,33 @@ TECH = re.compile(
 )
 TECH_STORES = {"apple", "b&h", "b&h photo", "dell", "lenovo", "micro center", "newegg"}
 PC_GAME_STORES = {"battle.net", "epic games", "epic games store", "gog", "gog.com", "steam"}
+PRODUCT_CATEGORIES = (
+    ("kitchen", re.compile(
+        r"\b(?:cookware|bakeware|kitchenware|dinnerware|cutlery|kitchen utensils?|food storage|"
+        r"air fryers?|blenders?|toaster ovens?|toasters?|rice cookers?|slow cookers?|"
+        r"pressure cookers?|instant pots?|stand mixers?|food processors?|coffee makers?|"
+        r"espresso machines?|coffee machines?|coffee grinders?|electric kettles?|nonstick pans?|frying pans?|"
+        r"skillets?|dutch ovens?|chef'?s knives|cutting boards?|baking sheets?)\b", re.I)),
+    ("beauty", re.compile(
+        r"\b(?:skin[ -]?care|make[ -]?up|cosmetics?|hair[ -]?care|shampoos?|hair conditioners?|"
+        r"hair styling|hair dryers?|flat irons?|facial cleansers?|face serums?|face moisturizers?|"
+        r"sunscreens?|lipsticks?|mascara|eyeliners?|fragrances?|perfumes?|colognes?|"
+        r"beard trimmers?|electric shavers?|grooming kits?)\b", re.I)),
+    ("wellness", re.compile(
+        r"\b(?:dietary supplements?|supplements?|multivitamins?|vitamin gummies|probiotics?|"
+        r"creatine|protein powders?|protein shakes?|electrolyte powders?|fitness|treadmills?|"
+        r"dumbbells?|kettlebells?|yoga mats?|resistance bands?|running shoes?|health care|"
+        r"personal care|oral care|toothbrush(?:es)?|toothpaste|body wash|deodorants?|"
+        r"blood pressure monitors?|first aid|sleep aids?|weighted blankets?|white noise machines?|"
+        r"mattresses|mattress toppers?|sleeping bags?|camping|outdoor gear|outdoor recreation|"
+        r"hiking boots?|hydration packs?)\b", re.I)),
+)
+PRODUCT_DEPARTMENTS = {
+    "beauty": "beauty", "beauty & personal care": "beauty", "grooming": "beauty",
+    "health & wellness": "wellness", "health & beauty": "wellness", "sports & outdoors": "wellness",
+    "fitness equipment": "wellness", "sleep": "wellness",
+    "kitchen": "kitchen", "kitchen appliances": "kitchen", "small appliances": "kitchen",
+}
 
 
 def get_html(url):
@@ -148,6 +175,9 @@ def classify(title, category="", store=None):
     platforms = [(match.start(), group) for match, group in markers if match]
     if platforms:
         return min(platforms, key=lambda platform: platform[0])[1]
+    for group, pattern in PRODUCT_CATEGORIES:
+        if pattern.search(offer):
+            return group
     if hardware or SOFTWARE.search(main_item):
         return "tech"
     if REWARDS_OFFER.search(main_item):
@@ -157,6 +187,12 @@ def classify(title, category="", store=None):
     if (SWITCH_2.search(category) or PC_GAME.search(category) or store in PC_GAME_STORES
         or (MAC_TAG.search(platform_title) and category.strip().casefold() == "video games")):
         return "games"
+    for group, pattern in PRODUCT_CATEGORIES:
+        if pattern.search(category):
+            return group
+    department = PRODUCT_DEPARTMENTS.get(category.strip().casefold())
+    if department:
+        return department
     if TECH.search(category) or TECH.search(main_item) or HARDWARE.search(category) or store in TECH_STORES:
         return "tech"
     return "other"
@@ -197,7 +233,7 @@ def build_digest(now, fetch=get_html):
     ranking = sorted(candidates.values(), key=lambda deal: (
         deal["score"], deal["votes"], deal["comments"], deal["views"], int(deal["id"]),
     ), reverse=True)
-    counts = dict.fromkeys(("giftcards", "tech", "games", "other"), 0)
+    counts = dict.fromkeys(("giftcards", "tech", "games", "beauty", "wellness", "kitchen", "other"), 0)
     top = []
     with ThreadPoolExecutor(max_workers=len(SORTS)) as pool:
         for offset in range(0, len(ranking), len(SORTS)):
