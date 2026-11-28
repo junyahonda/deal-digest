@@ -21,15 +21,16 @@ GIFT_CARD = re.compile(r"\b(?:e[- ]?)?gift[ -]?cards?\b", re.I)
 SWITCH_2 = re.compile(
     r"\bswitch\s*2\b(?![‐‑‒–—-]?\s*(?:packs?|pks?|counts?|cts?|pcs|pieces?)\b)", re.I,
 )
-PC_DIGITAL = r"pc\s+digital(?:\s+(?:game\s+)?download)?"
-PC_PLATFORM = rf"(?:{PC_DIGITAL}|pc|windows|steam|epic(?:\s+games)?|gog(?:\.com)?|battle\.net|mac)"
+PC_DIGITAL_OFFER = r"pc\s+digital\s+(?:games?|(?:game\s+)?downloads?|codes?|keys?)"
+PC_PLATFORM = rf"(?:{PC_DIGITAL_OFFER}|pc(?:\s+digital)?|windows|steam|epic(?:\s+games)?|gog(?:\.com)?|battle\.net)"
 PC_GAME = re.compile(
-    rf"\b(?:{PC_DIGITAL}|pc\s+(?:(?:video\s+)?games?|(?:game\s+)?codes?|download|gaming\s+bundle)|"
+    rf"\b(?:{PC_DIGITAL_OFFER}|pc\s+(?:(?:video\s+)?games?|(?:game\s+)?codes?|download|gaming\s+bundle)|"
     r"steam\s+(?:keys?|codes?|games?|bundles?|downloads?|version)|"
     r"epic\s+(?:games(?:\s+store)?|store)|gog(?:\.com)?|battle\.net)\b"
-    rf"|(?:(?P<paren>\()|\[)\s*{PC_PLATFORM}(?:\s*/\s*{PC_PLATFORM})*\s*(?(paren)\)|\])"
+    rf"|(?:(?P<paren>\()|\[)\s*(?:mac\s*/\s*)*{PC_PLATFORM}(?:\s*/\s*(?:{PC_PLATFORM}|mac))*\s*(?(paren)\)|\])"
     r"|\bsteam(?=\s*(?:$|:))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
 )
+MAC_TAG = re.compile(r"\(\s*mac\s*\)|\[\s*mac\s*\]", re.I)
 BONUS = re.compile(
     r"(?:\s+(?:with\b|w/|includes?\b|plus\b)\s*|\s*\+\s*)"
     r"(?:an?\s+)?(?:free|bonus|(?:pc\s+)?games?|dlc)\b", re.I,
@@ -42,6 +43,7 @@ HARDWARE = re.compile(
     r"(?:mini|gaming|desktop|prebuilt)\s+pcs?|routers?|keyboards?|gaming mice|"
     r"steam\s+(?:deck|machine|frame|controller|hardware))\b|^pcs?\b", re.I,
 )
+SOFTWARE = re.compile(r"\b(?:microsoft office|office \d{4}|windows|antivirus|vpns?|software)\b", re.I)
 TECH = re.compile(
     r"\b(?:tech|electronics|wi-fi|video games?|xbox|playstation|ps5|nintendo switch|"
     r"switch\s*(?:2(?:pks?|cts?|pcs)?|oled|lite))\b", re.I,
@@ -140,11 +142,12 @@ def classify(title, category="", store=None):
     platform_title = main_item if hardware else title
     if SWITCH_2.search(platform_title) or PC_GAME.search(platform_title):
         return "games"
-    if hardware:
+    if hardware or SOFTWARE.search(main_item):
         return "tech"
 
     store = (store or "").casefold()
-    if SWITCH_2.search(category) or PC_GAME.search(category) or store in PC_GAME_STORES:
+    if (SWITCH_2.search(category) or PC_GAME.search(category) or store in PC_GAME_STORES
+        or (MAC_TAG.search(platform_title) and category.strip().casefold() == "video games")):
         return "games"
     if TECH.search(category) or TECH.search(main_item) or HARDWARE.search(category) or store in TECH_STORES:
         return "tech"

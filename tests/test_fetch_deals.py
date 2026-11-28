@@ -66,6 +66,7 @@ class FetchDealsTest(unittest.TestCase):
                 "Game with DLC (PC Digital Download)", "Hades (Steam) + Free Hades II (Steam)",
                 "Hades II PC + Free DLC (Steam)", "Game (Steam / Epic)", "Game (PC Digital)",
                 "Game [Steam]", "Game [GOG]", "Game PC Digital Game Download", "Game via Battle.net",
+                "Game PC Digital key", "Game (Mac / Steam)", "Game (Mac) from GOG",
                 "Switch 2 Console + Free Game Code", "Switch 2 Pro Controller",
                 "2-Pack Screen Protectors for Nintendo Switch 2",
                 "Nintendo Switch 2 - Pack of 2 Screen Protectors",
@@ -83,6 +84,8 @@ class FetchDealsTest(unittest.TestCase):
                 "HP laptop w/game code (Epic)", "Gaming PC includes a free game (Steam)",
                 "27-inch monitor + game (PC Digital)", "Beelink [Mini PC]",
                 "Lenovo ThinkCentre (Desktop PC)", "SSD + bonus game (Steam / Epic)",
+                "Mini PC Digital Signage Player", "Microsoft Office 2021 (Mac)",
+                "Windows 11 Pro", "Antivirus subscription (Mac)", "VPN annual plan (Mac)",
             ),
             "giftcards": ("$50 Steam gift card",),
             "other": ("Steam mop",),
@@ -93,6 +96,8 @@ class FetchDealsTest(unittest.TestCase):
                     self.assertEqual(classify(title), expected)
         self.assertEqual(classify("Hades II", "PC Games"), "games")
         self.assertEqual(classify("Surprise game", store="GOG.com"), "games")
+        self.assertEqual(classify("Myst (Mac)", "Video Games"), "games")
+        self.assertEqual(classify("Myst (Mac)"), "other")
 
     def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
         def listings(url):
