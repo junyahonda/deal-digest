@@ -66,13 +66,14 @@ class FetchDealsTest(unittest.TestCase):
                 "Game with DLC (PC Digital Download)", "Hades (Steam) + Free Hades II (Steam)",
                 "Hades II PC + Free DLC (Steam)", "Game (Steam / Epic)", "Game (PC Digital)",
                 "Game [Steam]", "Game [GOG]", "Game PC Digital Game Download", "Game via Battle.net",
-                "Game PC Digital key", "Game (Mac / Steam)", "Game (Mac) from GOG",
+                "Game PC Digital key", "Game (Mac / Steam)", "Game (Mac) from GOG", "Steam key for Hades II",
                 "Switch 2 Console + Free Game Code", "Switch 2 Pro Controller",
                 "2-Pack Screen Protectors for Nintendo Switch 2",
                 "Nintendo Switch 2 - Pack of 2 Screen Protectors",
             ),
             "tech": (
                 "Nintendo Switch OLED", "PS5 console", "Xbox Series X", "Steam Deck OLED",
+                "Mario Kart 8 Deluxe (Switch)", "Forza Horizon Xbox game code",
                 "Nintendo Switch 2-Pack Screen Protectors (Switch OLED)",
                 "Nintendo Switch 2‑pack Screen Protectors (Switch OLED)",
                 "Nintendo Switch 2pk Screen Protectors (Switch OLED)",
@@ -98,6 +99,37 @@ class FetchDealsTest(unittest.TestCase):
         self.assertEqual(classify("Surprise game", store="GOG.com"), "games")
         self.assertEqual(classify("Myst (Mac)", "Video Games"), "games")
         self.assertEqual(classify("Myst (Mac)"), "other")
+
+    def test_mixed_games_follow_the_leading_platform(self):
+        cases = (
+            ("Video Games: Final Fantasy VII Rebirth (PS5) $12.88, Rise of the Ronin (PS5) $17.50, "
+             "Yakuza 0 (Switch 2) $21.16 + More w/ Free S/H @ eBay", "tech"),
+            ("Yakuza 0 (Switch 2) and Final Fantasy VII Rebirth (PS5)", "games"),
+            ("Forza (Xbox), Hades (Steam)", "tech"),
+            ("Hades (Steam), Forza (Xbox)", "games"),
+            ("Game [PC / PS5]", "games"),
+            ("Game [PS5 / PC]", "tech"),
+            ("Mario Kart 8 (Nintendo Switch), Mario Kart World (Switch 2)", "tech"),
+        )
+        for title, expected in cases:
+            with self.subTest(title=title):
+                self.assertEqual(classify(title, "Video Games", "eBay"), expected)
+
+    def test_rewards_offers_and_power_accessories(self):
+        cases = (
+            ("18% cashback WALMART today only from CapitalOneOffers", "Tech & Electronics",
+             "Capital One Offers", "other"),
+            ("Baseus Qi2 Certified 15W Wireless Magnetic Power Bank 10000mAh with USB-C Cable "
+             "22.5W PD Charging $19.79 + Free Shipping w/ Prime or orders $35+", "Chargers & Power Banks",
+             "Amazon", "tech"),
+            ("15% credit card rewards at Lenovo", "Electronics", "Lenovo", "other"),
+            ("USB-C charger", "", None, "tech"),
+            ("Portable batteries", "", None, "tech"),
+            ("25% cash back on an OLED laptop", "", None, "tech"),
+        )
+        for title, category, store, expected in cases:
+            with self.subTest(title=title):
+                self.assertEqual(classify(title, category, store), expected)
 
     def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
         def listings(url):

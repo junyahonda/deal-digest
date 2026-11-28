@@ -12,7 +12,7 @@ test("the ranking explanation is plain content and does not need a disclosure", 
   assert.doesNotMatch(page, /<details\b/);
 });
 
-test("category filters show up to five recent deals in rank order and report shortages", async () => {
+async function loadSite(sessionStorage) {
   const page = readFileSync("index.html", "utf8");
   const buttons = Array.from(page.matchAll(/<button[^>]*data-category="([^"]+)" aria-pressed="([^"]+)"[^>]*>/g),
     ([, category, pressed]) => ({
@@ -54,31 +54,54 @@ test("category filters show up to five recent deals in rank order and report sho
       ] };
     } }),
     navigator: {},
+    sessionStorage,
   });
   await new Promise(setImmediate);
 
   const titles = () => cards.map((card) => card.querySelector(".deal-title").textContent);
+  return { buttons, status, titles, firstCard: () => cards[0] };
+}
+
+test("category filters show up to five recent deals in rank order and report shortages", async () => {
+  const { buttons, status, titles, firstCard } = await loadSite();
   assert.ok(buttons.every((button) => !button.disabled));
   assert.deepEqual(titles(), ["gift", "tech 1", "tech 2", "tech 3", "tech 4"]);
   const [, giftcards, techFilter, games, other] = buttons;
   techFilter.click();
   assert.deepEqual(titles(), ["tech 1", "tech 2", "tech 3", "tech 4", "tech 5"]);
   assert.deepEqual(buttons.map((button) => button.pressed), ["false", "false", "true", "false", "false"]);
-  assert.equal(cards[0].querySelector(".place").textContent, "#1");
-  assert.equal(cards[0].querySelector(".deal-category").textContent, "Tech");
-  assert.equal(cards[0].querySelector(".deal-category").hidden, false);
+  assert.equal(firstCard().querySelector(".place").textContent, "#1");
+  assert.equal(firstCard().querySelector(".deal-category").textContent, "Tech");
+  assert.equal(firstCard().querySelector(".deal-category").hidden, false);
   assert.equal(status.hidden, true);
   giftcards.click();
   assert.deepEqual(titles(), ["gift"]);
   assert.match(status.textContent, /Only 1 deal in this category/);
   games.click();
   assert.deepEqual(titles(), ["Switch 2"]);
-  assert.equal(cards[0].querySelector(".deal-category").textContent, "Switch 2 & PC games");
+  assert.equal(firstCard().querySelector(".deal-category").textContent, "Switch 2 & PC games");
+  assert.equal(status.textContent, "Only 1 deal in this category from the last 24 hours.");
+  assert.equal(status.hidden, false);
   other.click();
   assert.deepEqual(titles(), []);
   assert.match(status.textContent, /No deals in this category/);
   buttons[0].click();
   assert.deepEqual(titles(), ["gift", "tech 1", "tech 2", "tech 3", "tech 4"]);
+});
+
+test("a reload restores the stored category and a fresh session defaults to All", async () => {
+  const entries = new Map();
+  const storage = { setItem: (key, value) => entries.set(key, value),
+    getItem: (key) => entries.get(key) ?? null };
+  const first = await loadSite(storage);
+  first.buttons.find((button) => button.dataset.category === "games").click();
+  const reloaded = await loadSite(storage);
+  assert.deepEqual(reloaded.buttons.filter((button) => button.pressed === "true")
+    .map((button) => button.dataset.category), ["games"]);
+  assert.deepEqual(reloaded.titles(), ["Switch 2"]);
+  const newSession = await loadSite();
+  assert.equal(newSession.buttons[0].pressed, "true");
+  assert.deepEqual(newSession.titles(), ["gift", "tech 1", "tech 2", "tech 3", "tech 4"]);
 });
 
 test("the offline worker refreshes the scoped digest from the network before falling back", async () => {

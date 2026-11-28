@@ -6,6 +6,7 @@ const categoryButtons = document.querySelectorAll(".category-filters button");
 const categories = new Map([
   ["giftcards", "Gift cards"], ["tech", "Tech"], ["games", "Switch 2 & PC games"], ["other", "Others"],
 ]);
+const filterKey = "deal-digest-category";
 const fullDate = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium", timeStyle: "short",
 });
@@ -56,6 +57,9 @@ function renderDeal(deal, position, now) {
 }
 
 function renderRanking(digest, category) {
+  for (const button of categoryButtons) {
+    button.setAttribute("aria-pressed", String(button.dataset.category === category));
+  }
   const now = Date.now();
   const recent = digest.deals.filter((deal) => {
     const age = now - new Date(deal.posted_at);
@@ -77,6 +81,14 @@ function renderRanking(digest, category) {
   status.hidden = !notices.length;
 }
 
+function savedCategory() {
+  try {
+    const category = sessionStorage.getItem(filterKey);
+    if (categories.has(category)) return category;
+  } catch {}
+  return "all";
+}
+
 async function loadDeals() {
   try {
     const response = await fetch("./data/deals.json", { cache: "no-cache" });
@@ -87,14 +99,15 @@ async function loadDeals() {
     time.dateTime = generated.toISOString();
     time.textContent = fullDate.format(generated);
     updated.replaceChildren("Updated ", time);
-    renderRanking(digest, "all");
+    renderRanking(digest, savedCategory());
     for (const button of categoryButtons) {
       button.disabled = false;
       button.addEventListener("click", () => {
-        for (const option of categoryButtons) {
-          option.setAttribute("aria-pressed", String(option === button));
-        }
-        renderRanking(digest, button.dataset.category);
+        const category = button.dataset.category;
+        try {
+          sessionStorage.setItem(filterKey, category);
+        } catch {}
+        renderRanking(digest, category);
       });
     }
   } catch {
