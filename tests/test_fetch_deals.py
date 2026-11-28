@@ -4,17 +4,17 @@ from tempfile import TemporaryDirectory
 import unittest
 from urllib.parse import parse_qs, urlsplit
 
-from scripts.fetch_deals import SORTS, build_digest, refresh
+from scripts.fetch_deals import SORTS, build_digest, classify, refresh
 
 
 NOW = datetime(2026, 11, 25, 20, tzinfo=timezone.utc)
 
 
-def row(number, votes, views=100, comments=2, price=""):
+def row(number, votes, views=100, comments=2, price="", title="Deal &amp;"):
     return f"""
       <tr id="sdpostrow_{number}0">
         <td><a data-thread-id="{number}" href="/f/{number}-deal"
-          data-final-price="{price}">Deal &amp; <strong>extras {number}</strong></a>
+          data-final-price="{price}">{title} <strong>extras {number}</strong></a>
           <img alt="Votes: 3 Score: {votes}">
         </td>
         <td title="Replies: {comments:,}, Views: {views:,}">Comment info</td>
@@ -46,6 +46,44 @@ def fixture(url):
 
 
 class FetchDealsTest(unittest.TestCase):
+    def test_classifies_titles_store_and_slickdeals_primary_category(self):
+        self.assertEqual(classify("Apple eGift Card", "Electronics", "Apple"), "giftcards")
+        self.assertEqual(classify("$50 dining credit", "Gift Cards"), "giftcards")
+        self.assertEqual(classify("Laptop with $50 gift card"), "tech")
+        self.assertEqual(classify("Winter boots + $50 gift card"), "other")
+        self.assertEqual(classify("C27G4X", "Monitors"), "tech")
+        self.assertEqual(classify("G50VT", store="Micro Center"), "tech")
+        self.assertEqual(classify("Dinnerware set", store="Amazon"), "other")
+
+    def test_classifies_switch_2_and_pc_games_but_not_other_consoles_or_steam_hardware(self):
+        for title in ("Nintendo Switch 2 Console", "Switch 2 Carrying Case",
+                      "Mario Kart World (Nintendo Switch 2)", "DOOM (Steam)", "Hades II (PC)",
+                      "Myst (PC Digital Download)", "Humble PC game bundle", "Terraria PC code",
+                      "Free game at Epic Games", "The Witcher (GOG)"):
+            with self.subTest(title=title):
+                self.assertEqual(classify(title, "Video Games"), "games")
+        self.assertEqual(classify("Hades II", "PC Games"), "games")
+        self.assertEqual(classify("Surprise game", store="GOG.com"), "games")
+        self.assertEqual(classify("$50 Steam gift card"), "giftcards")
+        for title in ("Nintendo Switch OLED", "PS5 console", "Xbox Series X", "Steam Deck OLED"):
+            self.assertEqual(classify(title), "tech")
+        self.assertEqual(classify("Steam mop"), "other")
+
+    def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
+        def listings(url):
+            if urlsplit(url).query:
+                return ("".join(row(n, 200 - n) for n in range(20, 40))
+                        + "".join(row(n, 200 - n, title="Nintendo e-gift card") for n in range(40, 46))
+                        + "".join(row(n, 200 - n, title="OLED laptop") for n in range(46, 52))
+                        + "".join(row(n, 200 - n, title="Switch 2 console") for n in range(52, 58)))
+            return fixture(url)
+
+        deals = build_digest(NOW, listings)["deals"]
+        self.assertEqual([deal["id"] for deal in deals], [str(n) for n in (
+            *range(20, 35), *range(40, 58))])
+        self.assertEqual([deal["category"] for deal in deals],
+                         ["other"] * 15 + ["giftcards"] * 6 + ["tech"] * 6 + ["games"] * 6)
+
     def test_ranks_deduplicated_deals_using_all_three_metrics_and_true_post_time(self):
         result = build_digest(NOW, fixture)
         self.assertEqual(result["generated_at"], NOW.isoformat())

@@ -16,8 +16,29 @@ from urllib.parse import urlencode, urljoin, urlsplit
 BASE = "https://slickdeals.net"
 SORTS = ("voteavg", "views", "replycount", "dateline")
 MIN_DEALS = 5
-MAX_DEALS = 15
+MAX_PER_CATEGORY = 15
 WINDOW = timedelta(hours=24)
+GIFT_CARD = re.compile(r"\b(?:e[- ]?)?gift[ -]?cards?\b", re.I)
+SWITCH_2 = re.compile(r"\b(?:nintendo\s+)?switch\s*2\b", re.I)
+PC_GAME = re.compile(
+    r"\b(?:pc (?:video )?games?|pc (?:game )?codes?|pc (?:digital )?(?:download|gaming bundle)|"
+    r"pc digital|"
+    r"steam (?:keys?|codes?|games?|bundles?|downloads?|version)|"
+    r"epic games(?: store)?|gog(?:\.com)?)\b"
+    r"|\b(?:windows|pc)\s*(?:/\s*mac\s*)?\)"
+    r"|\bsteam(?=\s*(?:$|[)\]:]))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
+)
+STEAM_HARDWARE = re.compile(r"\bsteam\s+(?:deck|machine|frame|controller|hardware)\b", re.I)
+TECH = re.compile(
+    r"\b(?:tech|electronics|computers?|laptops?|desktops?|chromebooks?|macbooks?|tablets?|ipads?|"
+    r"smartphones?|cell phones?|iphones?|smart ?watches?|smart ?tv|tvs?|televisions?|"
+    r"monitors?|projectors?|headphones?|earbuds?|soundbars?|"
+    r"graphics cards?|geforce|radeon|ssd|nvme|motherboards?|mini pcs?|"
+    r"routers?|wi-fi|keyboards?|gaming mice|video games?|xbox|playstation|ps5|nintendo switch)\b",
+    re.I,
+)
+TECH_STORES = {"apple", "b&h", "b&h photo", "dell", "lenovo", "micro center", "newegg"}
+PC_GAME_STORES = {"epic games", "epic games store", "gog", "gog.com", "steam"}
 
 
 def get_html(url):
@@ -100,6 +121,20 @@ def load_candidates(sort, fetch):
     return deals
 
 
+def classify(title, category="", store=None):
+    offer = re.split(r"(?i)\s+(?:with|includes?|plus|\+)\s+", title, maxsplit=1)[0]
+    if GIFT_CARD.search(category) or GIFT_CARD.search(offer):
+        return "giftcards"
+    store = (store or "").casefold()
+    if (SWITCH_2.search(offer) or SWITCH_2.search(category)
+        or PC_GAME.search(offer) or PC_GAME.search(category)
+        or (store in PC_GAME_STORES and not STEAM_HARDWARE.search(offer))):
+        return "games"
+    if TECH.search(category) or TECH.search(offer) or STEAM_HARDWARE.search(offer) or store in TECH_STORES:
+        return "tech"
+    return "other"
+
+
 def complete_deal(deal, html, now):
     page = DealMarkup(html)
     published = datetime.fromisoformat(page.meta["schema-date-published"])
@@ -117,6 +152,7 @@ def complete_deal(deal, html, now):
     return {
         **deal, "price": price, "store": page.store, "image": image,
         "posted_at": published.astimezone(timezone.utc).isoformat(),
+        "category": classify(deal["title"], page.meta.get("primaryCategory", ""), page.store),
     }
 
 
@@ -131,11 +167,16 @@ def build_digest(now, fetch=get_html):
     ranking = sorted(candidates.values(), key=lambda deal: (
         deal["score"], deal["votes"], deal["comments"], deal["views"], int(deal["id"]),
     ), reverse=True)
+    counts = dict.fromkeys(("giftcards", "tech", "games", "other"), 0)
     top = []
-    for deal in ranking:
-        if result := complete_deal(deal, fetch(deal["link"]), now):
-            top.append(result)
-            if len(top) == MAX_DEALS:
+    with ThreadPoolExecutor(max_workers=len(SORTS)) as pool:
+        for offset in range(0, len(ranking), len(SORTS)):
+            batch = ranking[offset:offset + len(SORTS)]
+            for result in pool.map(lambda deal: complete_deal(deal, fetch(deal["link"]), now), batch):
+                if result and counts[result["category"]] < MAX_PER_CATEGORY:
+                    top.append(result)
+                    counts[result["category"]] += 1
+            if all(count == MAX_PER_CATEGORY for count in counts.values()):
                 break
     if len(top) < MIN_DEALS:
         raise ValueError(f"Only {len(top)} eligible deals found; expected at least {MIN_DEALS}")

@@ -33,6 +33,13 @@
           <h2 id="ranking-title">The latest ranking</h2>
           <p class="update" id="updated"></p>
         </div>
+        <div class="category-filters" role="group" aria-label="Filter deals by category">
+          <button type="button" data-category="all" aria-pressed="true" disabled>All</button>
+          <button type="button" data-category="giftcards" aria-pressed="false" disabled>Gift cards</button>
+          <button type="button" data-category="tech" aria-pressed="false" disabled>Tech</button>
+          <button type="button" data-category="games" aria-pressed="false" disabled>Switch 2 &amp; PC games</button>
+          <button type="button" data-category="other" aria-pressed="false" disabled>Others</button>
+        </div>
         <p class="notice" id="status" role="status">Loading the deal ranking…</p>
         <ol class="deals" id="deals" role="list"></ol>
       </section>
@@ -58,7 +65,10 @@
             <div class="deal-copy">
               <div class="eyebrow"><span class="place"></span><span class="store"></span><time class="posted"></time></div>
               <h3 class="deal-title"></h3>
-              <p class="price"></p>
+              <div class="deal-meta">
+                <p class="price"></p>
+                <span class="deal-category" hidden></span>
+              </div>
             </div>
           </div>
           <dl class="stats">
