@@ -18,16 +18,18 @@ SORTS = ("voteavg", "views", "replycount", "dateline")
 MAX_PER_CATEGORY = 15
 WINDOW = timedelta(hours=24)
 GIFT_CARD = re.compile(r"\b(?:e[- ]?)?gift[ -]?cards?\b", re.I)
-SWITCH_2 = re.compile(
-    r"\bswitch\s*2\b(?![‐‑‒–—-]?\s*(?:packs?|pks?|counts?|cts?|pcs|pieces?)\b)", re.I,
-)
+SWITCH_2_PLATFORM = r"(?:nintendo\s+)?switch\s*2\b(?![‐‑‒–—-]?\s*(?:packs?|pks?|counts?|cts?|pcs|pieces?)\b)"
+SWITCH_2 = re.compile(rf"\b{SWITCH_2_PLATFORM}", re.I)
+LEGACY_CONSOLE = r"(?:ps[345]|playstation(?:\s*[345])?|xbox(?:\s+(?:one|series\s+[sx]))?|nintendo\s+switch)"
+TECH_PLATFORM = re.compile(rf"\b{LEGACY_CONSOLE}\b|\bswitch\s+(?:oled|lite)\b|(?<=[(\[])switch(?=[)\]])", re.I)
 PC_DIGITAL_OFFER = r"pc\s+digital\s+(?:games?|(?:game\s+)?downloads?|codes?|keys?)"
 PC_PLATFORM = rf"(?:{PC_DIGITAL_OFFER}|pc(?:\s+digital)?|windows|steam|epic(?:\s+games)?|gog(?:\.com)?|battle\.net)"
 PC_GAME = re.compile(
     rf"\b(?:{PC_DIGITAL_OFFER}|pc\s+(?:(?:video\s+)?games?|(?:game\s+)?codes?|download|gaming\s+bundle)|"
     r"steam\s+(?:keys?|codes?|games?|bundles?|downloads?|version)|"
     r"epic\s+(?:games(?:\s+store)?|store)|gog(?:\.com)?|battle\.net)\b"
-    rf"|(?:(?P<paren>\()|\[)\s*(?:mac\s*/\s*)*{PC_PLATFORM}(?:\s*/\s*(?:{PC_PLATFORM}|mac))*\s*(?(paren)\)|\])"
+    rf"|(?:(?P<paren>\()|\[)\s*(?:mac\s*/\s*)*{PC_PLATFORM}"
+    rf"(?:\s*/\s*(?:{PC_PLATFORM}|{SWITCH_2_PLATFORM}|{LEGACY_CONSOLE}|mac))*\s*(?(paren)\)|\])"
     r"|\bsteam(?=\s*(?:$|:))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
 )
 MAC_TAG = re.compile(r"\(\s*mac\s*\)|\[\s*mac\s*\]", re.I)
@@ -38,12 +40,13 @@ BONUS = re.compile(
 HARDWARE = re.compile(
     r"\b(?:computers?|laptops?|desktops?|chromebooks?|macbooks?|tablets?|ipads?|"
     r"smartphones?|cell phones?|iphones?|smart ?watches?|smart ?tv|tvs?|televisions?|"
-    r"monitors?|projectors?|headphones?|earbuds?|soundbars?|"
+    r"monitors?|projectors?|headphones?|earbuds?|soundbars?|power[ -]?banks?|chargers?|portable batteries|"
     r"graphics cards?|geforce|radeon|gpus?|cpus?|processors?|ssds?|nvme|motherboards?|"
     r"(?:mini|gaming|desktop|prebuilt)\s+pcs?|routers?|keyboards?|gaming mice|"
     r"steam\s+(?:deck|machine|frame|controller|hardware))\b|^pcs?\b", re.I,
 )
 SOFTWARE = re.compile(r"\b(?:microsoft office|office \d{4}|windows|antivirus|vpns?|software)\b", re.I)
+REWARDS_OFFER = re.compile(r"\b(?:cash[ -]?back|credit[ -]cards?|rewards|statement credits?)\b", re.I)
 TECH = re.compile(
     r"\b(?:tech|electronics|wi-fi|video games?|xbox|playstation|ps5|nintendo switch|"
     r"switch\s*(?:2(?:pks?|cts?|pcs)?|oled|lite))\b", re.I,
@@ -140,10 +143,15 @@ def classify(title, category="", store=None):
     main_item = BONUS.split(title, maxsplit=1)[0]
     hardware = HARDWARE.search(main_item)
     platform_title = main_item if hardware else title
-    if SWITCH_2.search(platform_title) or PC_GAME.search(platform_title):
-        return "games"
+    markers = ((SWITCH_2.search(platform_title), "games"), (PC_GAME.search(platform_title), "games"),
+               (TECH_PLATFORM.search(platform_title), "tech"))
+    platforms = [(match.start(), group) for match, group in markers if match]
+    if platforms:
+        return min(platforms, key=lambda platform: platform[0])[1]
     if hardware or SOFTWARE.search(main_item):
         return "tech"
+    if REWARDS_OFFER.search(main_item):
+        return "other"
 
     store = (store or "").casefold()
     if (SWITCH_2.search(category) or PC_GAME.search(category) or store in PC_GAME_STORES
