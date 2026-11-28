@@ -69,6 +69,12 @@ class FetchDealsTest(unittest.TestCase):
             self.assertEqual(classify(title), "tech")
         self.assertEqual(classify("Steam mop"), "other")
 
+    def test_detects_pc_storefronts_and_platform_tags_after_bundle_separators(self):
+        for title in ("Hades + Hades II (Steam)", "Game + DLC (Epic)", "Game + DLC (GOG)",
+                      "Game + DLC [PC]", "Game with DLC (PC Digital Download)"):
+            with self.subTest(title=title):
+                self.assertEqual(classify(title, "Video Games"), "games")
+
     def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
         def listings(url):
             if urlsplit(url).query:

@@ -23,9 +23,9 @@ PC_GAME = re.compile(
     r"\b(?:pc (?:video )?games?|pc (?:game )?codes?|pc (?:digital )?(?:download|gaming bundle)|"
     r"pc digital|"
     r"steam (?:keys?|codes?|games?|bundles?|downloads?|version)|"
-    r"epic games(?: store)?|gog(?:\.com)?)\b"
-    r"|\b(?:windows|pc)\s*(?:/\s*mac\s*)?\)"
-    r"|\bsteam(?=\s*(?:$|[)\]:]))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
+    r"epic (?:games(?: store)?|store)|gog(?:\.com)?)\b"
+    r"|\b(?:windows|pc|epic)\s*(?:/\s*mac\s*)?[)\]]"
+    r"|\bsteam(?=\s*(?:$|[)\]:/]))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
 )
 STEAM_HARDWARE = re.compile(r"\bsteam\s+(?:deck|machine|frame|controller|hardware)\b", re.I)
 TECH = re.compile(
@@ -126,7 +126,7 @@ def classify(title, category="", store=None):
         return "giftcards"
     store = (store or "").casefold()
     if (SWITCH_2.search(offer) or SWITCH_2.search(category)
-        or PC_GAME.search(offer) or PC_GAME.search(category)
+        or PC_GAME.search(title) or PC_GAME.search(category)
         or (store in PC_GAME_STORES and not STEAM_HARDWARE.search(offer))):
         return "games"
     if TECH.search(category) or TECH.search(offer) or STEAM_HARDWARE.search(offer) or store in TECH_STORES:
