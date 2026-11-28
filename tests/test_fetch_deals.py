@@ -111,6 +111,23 @@ class FetchDealsTest(unittest.TestCase):
                 refresh(output, NOW, broken)
             self.assertEqual(output.read_text(), "last good snapshot")
 
+    def test_refresh_skips_unusable_timestamps_and_publishes_a_short_ranking(self):
+        def listings(url):
+            parts = urlsplit(url)
+            if parts.query:
+                return "".join(row(n, 30 - n) for n in range(20, 24))
+            if parts.path.startswith("/f/21-"):
+                return "<meta name='price' content='11'>"
+            if parts.path.startswith("/f/22-"):
+                return "<meta name='schema-date-published' content='not a timestamp'>"
+            return fixture(url)
+
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "deals.json"
+            result = refresh(output, NOW, listings)
+            self.assertEqual([deal["id"] for deal in result["deals"]], ["20", "23"])
+            self.assertTrue(output.is_file())
+
     def test_refresh_keeps_previous_snapshot_if_not_enough_recent_deals(self):
         with TemporaryDirectory() as temp:
             output = Path(temp) / "deals.json"

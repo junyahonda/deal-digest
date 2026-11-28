@@ -15,7 +15,6 @@ from urllib.parse import urlencode, urljoin, urlsplit
 
 BASE = "https://slickdeals.net"
 SORTS = ("voteavg", "views", "replycount", "dateline")
-MIN_DEALS = 5
 MAX_PER_CATEGORY = 15
 WINDOW = timedelta(hours=24)
 GIFT_CARD = re.compile(r"\b(?:e[- ]?)?gift[ -]?cards?\b", re.I)
@@ -137,8 +136,11 @@ def classify(title, category="", store=None):
 
 def complete_deal(deal, html, now):
     page = DealMarkup(html)
-    published = datetime.fromisoformat(page.meta["schema-date-published"])
-    if not now - WINDOW <= published <= now:
+    try:
+        published = datetime.fromisoformat(page.meta.get("schema-date-published", ""))
+    except ValueError:
+        return None
+    if published.tzinfo is None or not now - WINDOW <= published <= now:
         return None
     image = urljoin(BASE, page.meta.get("og:image", ""))
     image_url = urlsplit(image)
@@ -178,8 +180,8 @@ def build_digest(now, fetch=get_html):
                     counts[result["category"]] += 1
             if all(count == MAX_PER_CATEGORY for count in counts.values()):
                 break
-    if len(top) < MIN_DEALS:
-        raise ValueError(f"Only {len(top)} eligible deals found; expected at least {MIN_DEALS}")
+    if not top:
+        raise ValueError("Only 0 eligible deals found")
     return {"generated_at": now.isoformat(), "deals": top}
 
 
