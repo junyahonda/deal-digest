@@ -82,6 +82,15 @@ class FetchDealsTest(unittest.TestCase):
                 self.assertEqual(classify(title), "tech")
         self.assertEqual(classify("2-Pack Screen Protectors for Nintendo Switch 2"), "games")
 
+    def test_free_pc_games_do_not_reclassify_hardware(self):
+        for title in ("RTX 5070 GPU + Free Game Code (Steam)", "Ryzen 7 CPU with bonus game (GOG)",
+                      "HP laptop w/game code (Epic)", "Gaming PC includes a free game (Steam)",
+                      "27-inch monitor + game (PC Digital)"):
+            with self.subTest(title=title):
+                self.assertEqual(classify(title), "tech")
+        self.assertEqual(classify("Switch 2 Console + Free Game Code"), "games")
+        self.assertEqual(classify("Hades (Steam) + Free Hades II (Steam)"), "games")
+
     def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
         def listings(url):
             if urlsplit(url).query:

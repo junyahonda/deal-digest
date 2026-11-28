@@ -30,11 +30,15 @@ PC_GAME = re.compile(
     r"|\bsteam(?=\s*(?:$|[)\]:/]))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
 )
 STEAM_HARDWARE = re.compile(r"\bsteam\s+(?:deck|machine|frame|controller|hardware)\b", re.I)
+GAME_BONUS = re.compile(
+    r"(?:\s+(?:with\b|w/|includes?\b|plus\b)\s*|\s*\+\s*)"
+    r"(?:an?\s+)?(?:free|bonus|(?:pc\s+)?games?)\b", re.I,
+)
 TECH = re.compile(
     r"\b(?:tech|electronics|computers?|laptops?|desktops?|chromebooks?|macbooks?|tablets?|ipads?|"
     r"smartphones?|cell phones?|iphones?|smart ?watches?|smart ?tv|tvs?|televisions?|"
     r"monitors?|projectors?|headphones?|earbuds?|soundbars?|"
-    r"graphics cards?|geforce|radeon|ssd|nvme|motherboards?|mini pcs?|"
+    r"graphics cards?|geforce|radeon|gpus?|cpus?|processors?|ssd|nvme|motherboards?|pcs?|"
     r"routers?|wi-fi|keyboards?|gaming mice|video games?|xbox|playstation|ps5|nintendo switch)\b",
     re.I,
 )
@@ -127,8 +131,12 @@ def classify(title, category="", store=None):
     if GIFT_CARD.search(category) or GIFT_CARD.search(offer):
         return "giftcards"
     store = (store or "").casefold()
-    if (SWITCH_2.search(offer) or SWITCH_2.search(category)
-        or PC_GAME.search(title) or PC_GAME.search(category)
+    if SWITCH_2.search(offer) or SWITCH_2.search(category):
+        return "games"
+    paid_offer, *bonus = GAME_BONUS.split(title, maxsplit=1)
+    if bonus and (TECH.search(paid_offer) or STEAM_HARDWARE.search(paid_offer)) and not PC_GAME.search(paid_offer):
+        return "tech"
+    if (PC_GAME.search(title) or PC_GAME.search(category)
         or (store in PC_GAME_STORES and not STEAM_HARDWARE.search(offer))):
         return "games"
     if TECH.search(category) or TECH.search(offer) or STEAM_HARDWARE.search(offer) or store in TECH_STORES:
