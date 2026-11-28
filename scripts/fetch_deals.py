@@ -18,9 +18,8 @@ SORTS = ("voteavg", "views", "replycount", "dateline")
 MAX_PER_CATEGORY = 15
 WINDOW = timedelta(hours=24)
 GIFT_CARD = re.compile(r"\b(?:e[- ]?)?gift[ -]?cards?\b", re.I)
-SWITCH_2 = re.compile(
-    r"\b(?:nintendo\s+)?switch\s*2\b(?![‐‑‒–—-]?\s*(?:packs?|pks?|counts?|cts?|pcs|pieces?)\b)", re.I,
-)
+SWITCH_2_PLATFORM = r"(?:nintendo\s+)?switch\s*2\b(?![‐‑‒–—-]?\s*(?:packs?|pks?|counts?|cts?|pcs|pieces?)\b)"
+SWITCH_2 = re.compile(rf"\b{SWITCH_2_PLATFORM}", re.I)
 LEGACY_CONSOLE = r"(?:ps[345]|playstation(?:\s*[345])?|xbox(?:\s+(?:one|series\s+[sx]))?|nintendo\s+switch)"
 TECH_PLATFORM = re.compile(rf"\b{LEGACY_CONSOLE}\b|\bswitch\s+(?:oled|lite)\b|(?<=[(\[])switch(?=[)\]])", re.I)
 PC_DIGITAL_OFFER = r"pc\s+digital\s+(?:games?|(?:game\s+)?downloads?|codes?|keys?)"
@@ -30,7 +29,7 @@ PC_GAME = re.compile(
     r"steam\s+(?:keys?|codes?|games?|bundles?|downloads?|version)|"
     r"epic\s+(?:games(?:\s+store)?|store)|gog(?:\.com)?|battle\.net)\b"
     rf"|(?:(?P<paren>\()|\[)\s*(?:mac\s*/\s*)*{PC_PLATFORM}"
-    rf"(?:\s*/\s*(?:{PC_PLATFORM}|{LEGACY_CONSOLE}|mac))*\s*(?(paren)\)|\])"
+    rf"(?:\s*/\s*(?:{PC_PLATFORM}|{SWITCH_2_PLATFORM}|{LEGACY_CONSOLE}|mac))*\s*(?(paren)\)|\])"
     r"|\bsteam(?=\s*(?:$|:))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
 )
 MAC_TAG = re.compile(r"\(\s*mac\s*\)|\[\s*mac\s*\]", re.I)

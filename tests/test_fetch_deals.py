@@ -108,6 +108,8 @@ class FetchDealsTest(unittest.TestCase):
             ("Forza (Xbox), Hades (Steam)", "tech"),
             ("Hades (Steam), Forza (Xbox)", "games"),
             ("Game [PC / PS5]", "games"),
+            ("Game [PC / PS5 / Switch 2]", "games"),
+            ("Game [PS5 / PC / Switch 2]", "tech"),
             ("Game [PS5 / PC]", "tech"),
             ("Mario Kart 8 (Nintendo Switch), Mario Kart World (Switch 2)", "tech"),
         )
