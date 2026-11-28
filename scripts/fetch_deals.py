@@ -23,11 +23,11 @@ SWITCH_2 = re.compile(
 )
 PC_GAME = re.compile(
     r"\b(?:pc (?:video )?games?|pc (?:game )?codes?|pc (?:digital )?(?:download|gaming bundle)|"
-    r"pc digital|"
     r"steam (?:keys?|codes?|games?|bundles?|downloads?|version)|"
     r"epic (?:games(?: store)?|store)|gog(?:\.com)?)\b"
-    r"|\b(?:windows|pc|epic)\s*(?:/\s*mac\s*)?[)\]]"
-    r"|\bsteam(?=\s*(?:$|[)\]:/]))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
+    r"|(?:(?P<paren>\()|\[)\s*(?:pc(?:\s+digital(?:\s+download)?)?|windows|steam|epic|gog)"
+    r"(?:\s*/\s*mac)?\s*(?(paren)\)|\])"
+    r"|\bsteam(?=\s*(?:$|:))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
 )
 STEAM_HARDWARE = re.compile(r"\bsteam\s+(?:deck|machine|frame|controller|hardware)\b", re.I)
 GAME_BONUS = re.compile(

@@ -92,6 +92,12 @@ class FetchDealsTest(unittest.TestCase):
         self.assertEqual(classify("Switch 2 Console + Free Game Code"), "games")
         self.assertEqual(classify("Hades (Steam) + Free Hades II (Steam)"), "games")
 
+    def test_bracketed_platform_tags_must_match_the_entire_tag(self):
+        self.assertEqual(classify("Beelink [Mini PC]"), "tech")
+        self.assertEqual(classify("Lenovo ThinkCentre (Desktop PC)"), "tech")
+        for tag in ("[PC]", "(PC Digital)", "[Steam]", "(Epic)", "[GOG]"):
+            self.assertEqual(classify(f"Hades {tag}"), "games")
+
     def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
         def listings(url):
             if urlsplit(url).query:
