@@ -1,6 +1,6 @@
 const scope = self.registration.scope;
 const cachePrefix = `deal-digest:${scope}:`;
-const cacheName = `${cachePrefix}v1`;
+const cacheName = `${cachePrefix}v2`;
 const shell = ["./", "./styles.css", "./app.js", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png"].map((path) => new URL(path, scope).href);
 const shellPage = shell[0];

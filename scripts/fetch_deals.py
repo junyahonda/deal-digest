@@ -15,9 +15,41 @@ from urllib.parse import urlencode, urljoin, urlsplit
 
 BASE = "https://slickdeals.net"
 SORTS = ("voteavg", "views", "replycount", "dateline")
-MIN_DEALS = 5
-MAX_DEALS = 15
+MAX_PER_CATEGORY = 15
 WINDOW = timedelta(hours=24)
+GIFT_CARD = re.compile(r"\b(?:e[- ]?)?gift[ -]?cards?\b", re.I)
+SWITCH_2 = re.compile(
+    r"\bswitch\s*2\b(?![‐‑‒–—-]?\s*(?:packs?|pks?|counts?|cts?|pcs|pieces?)\b)", re.I,
+)
+PC_DIGITAL_OFFER = r"pc\s+digital\s+(?:games?|(?:game\s+)?downloads?|codes?|keys?)"
+PC_PLATFORM = rf"(?:{PC_DIGITAL_OFFER}|pc(?:\s+digital)?|windows|steam|epic(?:\s+games)?|gog(?:\.com)?|battle\.net)"
+PC_GAME = re.compile(
+    rf"\b(?:{PC_DIGITAL_OFFER}|pc\s+(?:(?:video\s+)?games?|(?:game\s+)?codes?|download|gaming\s+bundle)|"
+    r"steam\s+(?:keys?|codes?|games?|bundles?|downloads?|version)|"
+    r"epic\s+(?:games(?:\s+store)?|store)|gog(?:\.com)?|battle\.net)\b"
+    rf"|(?:(?P<paren>\()|\[)\s*(?:mac\s*/\s*)*{PC_PLATFORM}(?:\s*/\s*(?:{PC_PLATFORM}|mac))*\s*(?(paren)\)|\])"
+    r"|\bsteam(?=\s*(?:$|:))|(?:\b(?:at|on|from)\s+|@\s*)steam\b", re.I,
+)
+MAC_TAG = re.compile(r"\(\s*mac\s*\)|\[\s*mac\s*\]", re.I)
+BONUS = re.compile(
+    r"(?:\s+(?:with\b|w/|includes?\b|plus\b)\s*|\s*\+\s*)"
+    r"(?:an?\s+)?(?:free|bonus|(?:pc\s+)?games?|dlc)\b", re.I,
+)
+HARDWARE = re.compile(
+    r"\b(?:computers?|laptops?|desktops?|chromebooks?|macbooks?|tablets?|ipads?|"
+    r"smartphones?|cell phones?|iphones?|smart ?watches?|smart ?tv|tvs?|televisions?|"
+    r"monitors?|projectors?|headphones?|earbuds?|soundbars?|"
+    r"graphics cards?|geforce|radeon|gpus?|cpus?|processors?|ssds?|nvme|motherboards?|"
+    r"(?:mini|gaming|desktop|prebuilt)\s+pcs?|routers?|keyboards?|gaming mice|"
+    r"steam\s+(?:deck|machine|frame|controller|hardware))\b|^pcs?\b", re.I,
+)
+SOFTWARE = re.compile(r"\b(?:microsoft office|office \d{4}|windows|antivirus|vpns?|software)\b", re.I)
+TECH = re.compile(
+    r"\b(?:tech|electronics|wi-fi|video games?|xbox|playstation|ps5|nintendo switch|"
+    r"switch\s*(?:2(?:pks?|cts?|pcs)?|oled|lite))\b", re.I,
+)
+TECH_STORES = {"apple", "b&h", "b&h photo", "dell", "lenovo", "micro center", "newegg"}
+PC_GAME_STORES = {"battle.net", "epic games", "epic games store", "gog", "gog.com", "steam"}
 
 
 def get_html(url):
@@ -100,10 +132,35 @@ def load_candidates(sort, fetch):
     return deals
 
 
+def classify(title, category="", store=None):
+    offer = re.split(r"(?i)\s+(?:with|includes?|plus|\+)\s+", title, maxsplit=1)[0]
+    if GIFT_CARD.search(category) or GIFT_CARD.search(offer):
+        return "giftcards"
+
+    main_item = BONUS.split(title, maxsplit=1)[0]
+    hardware = HARDWARE.search(main_item)
+    platform_title = main_item if hardware else title
+    if SWITCH_2.search(platform_title) or PC_GAME.search(platform_title):
+        return "games"
+    if hardware or SOFTWARE.search(main_item):
+        return "tech"
+
+    store = (store or "").casefold()
+    if (SWITCH_2.search(category) or PC_GAME.search(category) or store in PC_GAME_STORES
+        or (MAC_TAG.search(platform_title) and category.strip().casefold() == "video games")):
+        return "games"
+    if TECH.search(category) or TECH.search(main_item) or HARDWARE.search(category) or store in TECH_STORES:
+        return "tech"
+    return "other"
+
+
 def complete_deal(deal, html, now):
     page = DealMarkup(html)
-    published = datetime.fromisoformat(page.meta["schema-date-published"])
-    if not now - WINDOW <= published <= now:
+    try:
+        published = datetime.fromisoformat(page.meta.get("schema-date-published", ""))
+    except ValueError:
+        return None
+    if published.tzinfo is None or not now - WINDOW <= published <= now:
         return None
     image = urljoin(BASE, page.meta.get("og:image", ""))
     image_url = urlsplit(image)
@@ -117,6 +174,7 @@ def complete_deal(deal, html, now):
     return {
         **deal, "price": price, "store": page.store, "image": image,
         "posted_at": published.astimezone(timezone.utc).isoformat(),
+        "category": classify(deal["title"], page.meta.get("primaryCategory", ""), page.store),
     }
 
 
@@ -131,14 +189,19 @@ def build_digest(now, fetch=get_html):
     ranking = sorted(candidates.values(), key=lambda deal: (
         deal["score"], deal["votes"], deal["comments"], deal["views"], int(deal["id"]),
     ), reverse=True)
+    counts = dict.fromkeys(("giftcards", "tech", "games", "other"), 0)
     top = []
-    for deal in ranking:
-        if result := complete_deal(deal, fetch(deal["link"]), now):
-            top.append(result)
-            if len(top) == MAX_DEALS:
+    with ThreadPoolExecutor(max_workers=len(SORTS)) as pool:
+        for offset in range(0, len(ranking), len(SORTS)):
+            batch = ranking[offset:offset + len(SORTS)]
+            for result in pool.map(lambda deal: complete_deal(deal, fetch(deal["link"]), now), batch):
+                if result and counts[result["category"]] < MAX_PER_CATEGORY:
+                    top.append(result)
+                    counts[result["category"]] += 1
+            if all(count == MAX_PER_CATEGORY for count in counts.values()):
                 break
-    if len(top) < MIN_DEALS:
-        raise ValueError(f"Only {len(top)} eligible deals found; expected at least {MIN_DEALS}")
+    if not top:
+        raise ValueError("Only 0 eligible deals found")
     return {"generated_at": now.isoformat(), "deals": top}
 
 

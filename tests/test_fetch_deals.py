@@ -4,17 +4,17 @@ from tempfile import TemporaryDirectory
 import unittest
 from urllib.parse import parse_qs, urlsplit
 
-from scripts.fetch_deals import SORTS, build_digest, refresh
+from scripts.fetch_deals import SORTS, build_digest, classify, refresh
 
 
 NOW = datetime(2026, 11, 25, 20, tzinfo=timezone.utc)
 
 
-def row(number, votes, views=100, comments=2, price=""):
+def row(number, votes, views=100, comments=2, price="", title="Deal &amp;"):
     return f"""
       <tr id="sdpostrow_{number}0">
         <td><a data-thread-id="{number}" href="/f/{number}-deal"
-          data-final-price="{price}">Deal &amp; <strong>extras {number}</strong></a>
+          data-final-price="{price}">{title} <strong>extras {number}</strong></a>
           <img alt="Votes: 3 Score: {votes}">
         </td>
         <td title="Replies: {comments:,}, Views: {views:,}">Comment info</td>
@@ -46,6 +46,74 @@ def fixture(url):
 
 
 class FetchDealsTest(unittest.TestCase):
+    def test_classifies_titles_store_and_slickdeals_primary_category(self):
+        self.assertEqual(classify("Apple eGift Card", "Electronics", "Apple"), "giftcards")
+        self.assertEqual(classify("$50 dining credit", "Gift Cards"), "giftcards")
+        self.assertEqual(classify("Laptop with $50 gift card"), "tech")
+        self.assertEqual(classify("Winter boots + $50 gift card"), "other")
+        self.assertEqual(classify("C27G4X", "Monitors"), "tech")
+        self.assertEqual(classify("G50VT", store="Micro Center"), "tech")
+        self.assertEqual(classify("Dinnerware set", store="Amazon"), "other")
+
+    def test_platform_markers_quantities_and_hardware_bonuses(self):
+        cases = {
+            "games": (
+                "Nintendo Switch 2 Console", "Switch 2 Carrying Case",
+                "Mario Kart World (Nintendo Switch 2)", "DOOM (Steam)", "Hades II (PC)",
+                "Myst (PC Digital Download)", "Humble PC game bundle", "Terraria PC code",
+                "Free game at Epic Games", "The Witcher (GOG)", "Hades + Hades II (Steam)",
+                "Game + DLC (Epic)", "Game + DLC (GOG)", "Game + DLC [PC]",
+                "Game with DLC (PC Digital Download)", "Hades (Steam) + Free Hades II (Steam)",
+                "Hades II PC + Free DLC (Steam)", "Game (Steam / Epic)", "Game (PC Digital)",
+                "Game [Steam]", "Game [GOG]", "Game PC Digital Game Download", "Game via Battle.net",
+                "Game PC Digital key", "Game (Mac / Steam)", "Game (Mac) from GOG",
+                "Switch 2 Console + Free Game Code", "Switch 2 Pro Controller",
+                "2-Pack Screen Protectors for Nintendo Switch 2",
+                "Nintendo Switch 2 - Pack of 2 Screen Protectors",
+            ),
+            "tech": (
+                "Nintendo Switch OLED", "PS5 console", "Xbox Series X", "Steam Deck OLED",
+                "Nintendo Switch 2-Pack Screen Protectors (Switch OLED)",
+                "Nintendo Switch 2‑pack Screen Protectors (Switch OLED)",
+                "Nintendo Switch 2pk Screen Protectors (Switch OLED)",
+                "Nintendo Switch 2 pk Screen Protectors (Switch OLED)",
+                "Nintendo Switch 2 count Screen Protectors (Switch OLED)",
+                "Switch 2 Pack", "Switch 2-Count", "Switch 2-Pack", "Switch 2pk",
+                "Switch 2 pcs", "Switch 2-Piece Accessory Set",
+                "RTX 5070 GPU + Free Game Code (Steam)", "Ryzen 7 CPU with bonus game (GOG)",
+                "HP laptop w/game code (Epic)", "Gaming PC includes a free game (Steam)",
+                "27-inch monitor + game (PC Digital)", "Beelink [Mini PC]",
+                "Lenovo ThinkCentre (Desktop PC)", "SSD + bonus game (Steam / Epic)",
+                "Mini PC Digital Signage Player", "Microsoft Office 2021 (Mac)",
+                "Windows 11 Pro", "Antivirus subscription (Mac)", "VPN annual plan (Mac)",
+            ),
+            "giftcards": ("$50 Steam gift card",),
+            "other": ("Steam mop",),
+        }
+        for expected, titles in cases.items():
+            for title in titles:
+                with self.subTest(title=title):
+                    self.assertEqual(classify(title), expected)
+        self.assertEqual(classify("Hades II", "PC Games"), "games")
+        self.assertEqual(classify("Surprise game", store="GOG.com"), "games")
+        self.assertEqual(classify("Myst (Mac)", "Video Games"), "games")
+        self.assertEqual(classify("Myst (Mac)"), "other")
+
+    def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
+        def listings(url):
+            if urlsplit(url).query:
+                return ("".join(row(n, 200 - n) for n in range(20, 40))
+                        + "".join(row(n, 200 - n, title="Nintendo e-gift card") for n in range(40, 46))
+                        + "".join(row(n, 200 - n, title="OLED laptop") for n in range(46, 52))
+                        + "".join(row(n, 200 - n, title="Switch 2 console") for n in range(52, 58)))
+            return fixture(url)
+
+        deals = build_digest(NOW, listings)["deals"]
+        self.assertEqual([deal["id"] for deal in deals], [str(n) for n in (
+            *range(20, 35), *range(40, 58))])
+        self.assertEqual([deal["category"] for deal in deals],
+                         ["other"] * 15 + ["giftcards"] * 6 + ["tech"] * 6 + ["games"] * 6)
+
     def test_ranks_deduplicated_deals_using_all_three_metrics_and_true_post_time(self):
         result = build_digest(NOW, fixture)
         self.assertEqual(result["generated_at"], NOW.isoformat())
@@ -72,6 +140,23 @@ class FetchDealsTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "No readable deal rows"):
                 refresh(output, NOW, broken)
             self.assertEqual(output.read_text(), "last good snapshot")
+
+    def test_refresh_skips_unusable_timestamps_and_publishes_a_short_ranking(self):
+        def listings(url):
+            parts = urlsplit(url)
+            if parts.query:
+                return "".join(row(n, 30 - n) for n in range(20, 24))
+            if parts.path.startswith("/f/21-"):
+                return "<meta name='price' content='11'>"
+            if parts.path.startswith("/f/22-"):
+                return "<meta name='schema-date-published' content='not a timestamp'>"
+            return fixture(url)
+
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "deals.json"
+            result = refresh(output, NOW, listings)
+            self.assertEqual([deal["id"] for deal in result["deals"]], ["20", "23"])
+            self.assertTrue(output.is_file())
 
     def test_refresh_keeps_previous_snapshot_if_not_enough_recent_deals(self):
         with TemporaryDirectory() as temp:
