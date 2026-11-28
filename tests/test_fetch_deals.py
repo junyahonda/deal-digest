@@ -148,6 +148,8 @@ class FetchDealsTest(unittest.TestCase):
             ("Blood Pressure Monitor", "Electronics", None, "wellness"),
             ("Weighted Blanket", "", None, "wellness"),
             ("Trail Shelter", "Sports & Outdoors", None, "wellness"),
+            ("Camping Tent", "", None, "wellness"),
+            ("20,000mAh USB-C Power Bank for Camping", "Sports & Outdoors", None, "tech"),
             ("Digital Air Fryer", "Electronics", "Newegg", "kitchen"),
             ("Ninja Countertop Blender", "Electronics", None, "kitchen"),
             ("Programmable Coffee Maker", "", None, "kitchen"),

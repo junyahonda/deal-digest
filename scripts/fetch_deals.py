@@ -71,9 +71,10 @@ PRODUCT_CATEGORIES = (
         r"dumbbells?|kettlebells?|yoga mats?|resistance bands?|running shoes?|health care|"
         r"personal care|oral care|toothbrush(?:es)?|toothpaste|body wash|deodorants?|"
         r"blood pressure monitors?|first aid|sleep aids?|weighted blankets?|white noise machines?|"
-        r"mattresses|mattress toppers?|sleeping bags?|camping|outdoor gear|outdoor recreation|"
+        r"mattresses|mattress toppers?|sleeping bags?|"
         r"hiking boots?|hydration packs?)\b", re.I)),
 )
+OUTDOOR_CONTEXT = re.compile(r"\b(?:camping|outdoor gear|outdoor recreation)\b", re.I)
 PRODUCT_DEPARTMENTS = {
     "beauty": "beauty", "beauty & personal care": "beauty", "grooming": "beauty",
     "health & wellness": "wellness", "health & beauty": "wellness", "sports & outdoors": "wellness",
@@ -180,6 +181,8 @@ def classify(title, category="", store=None):
             return group
     if hardware or SOFTWARE.search(main_item):
         return "tech"
+    if OUTDOOR_CONTEXT.search(offer):
+        return "wellness"
     if REWARDS_OFFER.search(main_item):
         return "other"
 
@@ -193,6 +196,8 @@ def classify(title, category="", store=None):
     for group, pattern in PRODUCT_CATEGORIES:
         if pattern.search(category):
             return group
+    if OUTDOOR_CONTEXT.search(category):
+        return "wellness"
     if TECH.search(category) or TECH.search(main_item) or HARDWARE.search(category) or store in TECH_STORES:
         return "tech"
     return "other"
