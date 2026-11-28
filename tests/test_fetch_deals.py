@@ -81,6 +81,7 @@ class FetchDealsTest(unittest.TestCase):
                 title = f"Nintendo Switch {quantity} Screen Protectors (Switch OLED)"
                 self.assertEqual(classify(title), "tech")
         self.assertEqual(classify("2-Pack Screen Protectors for Nintendo Switch 2"), "games")
+        self.assertEqual(classify("Nintendo Switch 2 - Pack of 2 Screen Protectors"), "games")
 
     def test_free_pc_games_do_not_reclassify_hardware(self):
         for title in ("RTX 5070 GPU + Free Game Code (Steam)", "Ryzen 7 CPU with bonus game (GOG)",

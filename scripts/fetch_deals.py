@@ -19,7 +19,7 @@ MAX_PER_CATEGORY = 15
 WINDOW = timedelta(hours=24)
 GIFT_CARD = re.compile(r"\b(?:e[- ]?)?gift[ -]?cards?\b", re.I)
 SWITCH_2 = re.compile(
-    r"\b(?:nintendo\s+)?switch\s*2\b(?![\s‐‑‒–—-]*(?:packs?|pks?|counts?|ct)\b)", re.I,
+    r"\b(?:nintendo\s+)?switch\s*2\b(?![‐‑‒–—-]packs?\b|\s*(?:pks?|counts?|ct)\b)", re.I,
 )
 PC_GAME = re.compile(
     r"\b(?:pc (?:video )?games?|pc (?:game )?codes?|pc (?:digital )?(?:download|gaming bundle)|"
