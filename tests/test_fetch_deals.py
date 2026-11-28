@@ -139,6 +139,7 @@ class FetchDealsTest(unittest.TestCase):
             ("Waterproof Mascara", "", None, "beauty"),
             ("Moisturizing Shampoo with Coconut Oil", "", None, "beauty"),
             ("Eau de Parfum Spray", "Fragrances", None, "beauty"),
+            ("Daily Essentials Set", "Beauty & Personal Care", None, "beauty"),
             ("Rechargeable Beard Trimmer", "Electronics", None, "beauty"),
             ("Biotin Multivitamins for Hair, Skin, and Nails", "Beauty", None, "wellness"),
             ("Premier Protein 30g Protein Shakes", "", None, "wellness"),

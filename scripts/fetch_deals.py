@@ -187,12 +187,12 @@ def classify(title, category="", store=None):
     if (SWITCH_2.search(category) or PC_GAME.search(category) or store in PC_GAME_STORES
         or (MAC_TAG.search(platform_title) and category.strip().casefold() == "video games")):
         return "games"
-    for group, pattern in PRODUCT_CATEGORIES:
-        if pattern.search(category):
-            return group
     department = PRODUCT_DEPARTMENTS.get(category.strip().casefold())
     if department:
         return department
+    for group, pattern in PRODUCT_CATEGORIES:
+        if pattern.search(category):
+            return group
     if TECH.search(category) or TECH.search(main_item) or HARDWARE.search(category) or store in TECH_STORES:
         return "tech"
     return "other"
