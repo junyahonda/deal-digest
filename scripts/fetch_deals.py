@@ -56,10 +56,11 @@ PC_GAME_STORES = {"battle.net", "epic games", "epic games store", "gog", "gog.co
 PRODUCT_CATEGORIES = (
     ("kitchen", re.compile(
         r"\b(?:cookware|bakeware|kitchenware|dinnerware|cutlery|kitchen utensils?|food storage|"
-        r"air fryers?|blenders?|toaster ovens?|toasters?|rice cookers?|slow cookers?|"
+        r"air fryers?|blenders?|toaster ovens?|toasters?|microwave ovens?|countertop microwaves?|"
+        r"rice cookers?|slow cookers?|"
         r"pressure cookers?|instant pots?|stand mixers?|food processors?|coffee makers?|"
         r"espresso machines?|coffee machines?|coffee grinders?|electric kettles?|nonstick pans?|frying pans?|"
-        r"skillets?|dutch ovens?|chef'?s knives|cutting boards?|baking sheets?)\b", re.I)),
+        r"skillets?|dutch ovens?|chef(?:['’]?s)? (?:knife|knives)|cutting boards?|baking sheets?)\b", re.I)),
     ("beauty", re.compile(
         r"\b(?:skin[ -]?care|make[ -]?up|cosmetics?|hair[ -]?care|shampoos?|hair conditioners?|"
         r"hair styling|hair dryers?|flat irons?|facial cleansers?|face serums?|face moisturizers?|"
