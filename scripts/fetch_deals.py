@@ -41,6 +41,7 @@ HARDWARE = re.compile(
     r"\b(?:computers?|laptops?|desktops?|chromebooks?|macbooks?|tablets?|ipads?|"
     r"smartphones?|cell phones?|iphones?|smart ?watches?|smart ?tv|tvs?|televisions?|"
     r"monitors?|projectors?|headphones?|earbuds?|soundbars?|power[ -]?banks?|chargers?|portable batteries|"
+    r"power stations?|(?:solar|portable) generators?|solar panels?|"
     r"graphics cards?|geforce|radeon|gpus?|cpus?|processors?|ssds?|nvme|motherboards?|"
     r"(?:mini|gaming|desktop|prebuilt)\s+pcs?|routers?|keyboards?|gaming mice|"
     r"steam\s+(?:deck|machine|frame|controller|hardware))\b|^pcs?\b", re.I,
@@ -63,7 +64,7 @@ PRODUCT_CATEGORIES = (
         r"skillets?|dutch ovens?|chef(?:['’]?s)? (?:knife|knives)|cutting boards?|baking sheets?)\b", re.I)),
     ("beauty", re.compile(
         r"\b(?:skin[ -]?care|make[ -]?up|cosmetics?|hair[ -]?care|shampoos?|hair conditioners?|"
-        r"hair styling|hair dryers?|flat irons?|facial cleansers?|face serums?|face moisturizers?|"
+        r"hair styling|hair dryers?|flat irons?|facial cleansers?|serums?|face moisturizers?|"
         r"sunscreens?|lipsticks?|mascara|eyeliners?|fragrances?|perfumes?|colognes?|"
         r"beard trimmers?|electric shavers?|grooming kits?)\b", re.I)),
     ("wellness", re.compile(

@@ -136,6 +136,7 @@ class FetchDealsTest(unittest.TestCase):
     def test_classifies_beauty_wellness_and_kitchen_by_product_or_metadata(self):
         cases = (
             ("Vitamin C Face Serum", "Health & Wellness", None, "beauty"),
+            ("Beauty Serum", "", None, "beauty"),
             ("Waterproof Mascara", "", None, "beauty"),
             ("Moisturizing Shampoo with Coconut Oil", "", None, "beauty"),
             ("Eau de Parfum Spray", "Fragrances", None, "beauty"),
@@ -150,6 +151,10 @@ class FetchDealsTest(unittest.TestCase):
             ("Trail Shelter", "Sports & Outdoors", None, "wellness"),
             ("Camping Tent", "", None, "wellness"),
             ("20,000mAh USB-C Power Bank for Camping", "Sports & Outdoors", None, "tech"),
+            ("Portable Power Station for Camping", "", None, "tech"),
+            ("Jackery Solar Generator for camping", "", None, "tech"),
+            ("Portable Generator for Camping", "", None, "tech"),
+            ("100W Foldable Solar Panel for Camping", "", None, "tech"),
             ("Digital Air Fryer", "Electronics", "Newegg", "kitchen"),
             ("Ninja Countertop Blender", "Electronics", None, "kitchen"),
             ("Programmable Coffee Maker", "", None, "kitchen"),
