@@ -75,6 +75,13 @@ class FetchDealsTest(unittest.TestCase):
             with self.subTest(title=title):
                 self.assertEqual(classify(title, "Video Games"), "games")
 
+    def test_switch_pack_quantities_do_not_match_the_switch_2_platform(self):
+        for quantity in ("2-Pack", "2‑pack", "2pk", "2 pk", "2 count"):
+            with self.subTest(quantity=quantity):
+                title = f"Nintendo Switch {quantity} Screen Protectors (Switch OLED)"
+                self.assertEqual(classify(title), "tech")
+        self.assertEqual(classify("2-Pack Screen Protectors for Nintendo Switch 2"), "games")
+
     def test_keeps_ranked_category_alternates_below_the_overall_top_fifteen(self):
         def listings(url):
             if urlsplit(url).query:
